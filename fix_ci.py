@@ -1,4 +1,5 @@
-name: Build APK
+"""Заменяет workflow: сборка Buildozer напрямую на сервере GitHub, без Docker-действия."""
+WORKFLOW = """name: Build APK
 on:
   workflow_dispatch:
   push:
@@ -30,3 +31,6 @@ jobs:
           name: zoobase-apk
           path: bin/*.apk
           if-no-files-found: warn
+"""
+open(".github/workflows/build-apk.yml", "w", encoding="utf-8").write(WORKFLOW)
+print("Workflow обновлён.")
