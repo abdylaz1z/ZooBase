@@ -1,0 +1,355 @@
+#:import dp kivy.metrics.dp
+
+<FormBox@MDBoxLayout>:
+    orientation: "vertical"
+    adaptive_height: True
+    spacing: dp(12)
+    padding: [max(dp(16), (self.width - dp(560)) / 2), dp(16)]
+
+<RegisterScreen>:
+    MDBoxLayout:
+        orientation: "vertical"
+        MDTopAppBar:
+            title: app.t("register_title", app.lang)
+        MDScrollView:
+            FormBox:
+                MDLabel:
+                    text: app.t("register_hint", app.lang)
+                    adaptive_height: True
+                MDTextField:
+                    id: farm_name
+                    hint_text: app.t("farm_name", app.lang)
+                    mode: "rectangle"
+                MDTextField:
+                    id: region
+                    hint_text: app.t("region", app.lang)
+                    mode: "rectangle"
+                MDTextField:
+                    id: owner
+                    hint_text: app.t("owner_name", app.lang)
+                    mode: "rectangle"
+                MDTextField:
+                    id: phone
+                    hint_text: app.t("phone", app.lang)
+                    mode: "rectangle"
+                    input_type: "tel"
+                MDRaisedButton:
+                    text: app.t("create_farm", app.lang)
+                    size_hint_x: 1
+                    on_release: root.submit()
+                MDBoxLayout:
+                    adaptive_height: True
+                    spacing: dp(8)
+                    MDFlatButton:
+                        text: "Кыргызча"
+                        size_hint_x: .5
+                        on_release: app.set_lang("ky")
+                    MDFlatButton:
+                        text: "Русский"
+                        size_hint_x: .5
+                        on_release: app.set_lang("ru")
+
+<HomeScreen>:
+    MDBottomNavigation:
+        id: nav
+        MDBottomNavigationItem:
+            name: "tab_tasks"
+            text: app.t("tab_tasks", app.lang)
+            icon: "calendar-check"
+            on_tab_press: root.refresh_tasks()
+            MDFloatLayout:
+                MDBoxLayout:
+                    orientation: "vertical"
+                    MDTopAppBar:
+                        title: app.t("tab_tasks", app.lang)
+                    MDScrollView:
+                        MDList:
+                            id: tasks_list
+                MDFloatingActionButton:
+                    icon: "plus"
+                    pos_hint: {"right": .95, "y": .04}
+                    on_release: app.open_task()
+        MDBottomNavigationItem:
+            name: "tab_animals"
+            text: app.t("tab_animals", app.lang)
+            icon: "sheep"
+            on_tab_press: root.refresh_animals()
+            MDFloatLayout:
+                MDBoxLayout:
+                    orientation: "vertical"
+                    MDTopAppBar:
+                        title: app.t("tab_animals", app.lang)
+                    MDBoxLayout:
+                        adaptive_height: True
+                        padding: dp(12), dp(4), dp(12), 0
+                        MDTextField:
+                            id: search
+                            hint_text: app.t("search_hint", app.lang)
+                            on_text: root.refresh_animals()
+                    MDBoxLayout:
+                        adaptive_height: True
+                        padding: dp(12), 0, dp(12), dp(4)
+                        spacing: dp(6)
+                        MDRectangleFlatButton:
+                            id: f_breed
+                            size_hint_x: 1
+                            font_size: "12sp"
+                            on_release: root.pick_filter("breed")
+                        MDRectangleFlatButton:
+                            id: f_sex
+                            size_hint_x: 1
+                            font_size: "12sp"
+                            on_release: root.pick_filter("sex")
+                        MDRectangleFlatButton:
+                            id: f_status
+                            size_hint_x: 1
+                            font_size: "12sp"
+                            on_release: root.pick_filter("status")
+                    MDLabel:
+                        id: count_label
+                        adaptive_height: True
+                        padding: dp(16), 0
+                        font_style: "Caption"
+                    MDScrollView:
+                        MDList:
+                            id: animals_list
+                MDFloatingActionButton:
+                    icon: "plus"
+                    pos_hint: {"right": .95, "y": .04}
+                    on_release: app.open_form(None)
+        MDBottomNavigationItem:
+            name: "tab_profile"
+            text: app.t("tab_profile", app.lang)
+            icon: "home-account"
+            on_tab_press: root.refresh_profile()
+            MDBoxLayout:
+                orientation: "vertical"
+                MDTopAppBar:
+                    title: app.t("tab_profile", app.lang)
+                MDScrollView:
+                    FormBox:
+                        MDLabel:
+                            id: farm_info
+                            adaptive_height: True
+                        MDLabel:
+                            text: app.t("language", app.lang)
+                            adaptive_height: True
+                            font_style: "Subtitle1"
+                        MDBoxLayout:
+                            adaptive_height: True
+                            spacing: dp(8)
+                            MDRaisedButton:
+                                text: "Кыргызча"
+                                size_hint_x: .5
+                                on_release: app.set_lang("ky")
+                            MDRaisedButton:
+                                text: "Русский"
+                                size_hint_x: .5
+                                on_release: app.set_lang("ru")
+                        MDBoxLayout:
+                            adaptive_height: True
+                            height: dp(56)
+                            MDLabel:
+                                text: app.t("dark_theme", app.lang)
+                            MDSwitch:
+                                id: dark_switch
+                                size_hint: None, None
+                                size: dp(54), dp(32)
+                                pos_hint: {"center_y": .5}
+                                on_active: app.set_dark(self.active)
+
+<FormScreen>:
+    MDBoxLayout:
+        orientation: "vertical"
+        MDTopAppBar:
+            title: root.title_text
+            left_action_items: [["arrow-left", lambda x: app.back()]]
+        MDScrollView:
+            FormBox:
+                MDCard:
+                    size_hint_y: None
+                    height: dp(180)
+                    radius: [dp(12)]
+                    on_release: root.pick_photo()
+                    MDFloatLayout:
+                        MDIcon:
+                            icon: "camera-plus"
+                            font_size: "48sp"
+                            theme_text_color: "Hint"
+                            pos_hint: {"center_x": .5, "center_y": .58}
+                        MDLabel:
+                            text: app.t("choose_photo", app.lang)
+                            halign: "center"
+                            theme_text_color: "Hint"
+                            pos_hint: {"center_x": .5, "center_y": .22}
+                        FitImage:
+                            id: photo_img
+                            source: ""
+                            opacity: 0
+                            radius: [dp(12)]
+                MDFlatButton:
+                    text: app.t("remove_photo", app.lang)
+                    opacity: 1 if root.has_photo else 0
+                    disabled: not root.has_photo
+                    on_release: root.remove_photo()
+                MDTextField:
+                    id: tag
+                    hint_text: app.t("tag", app.lang)
+                    mode: "rectangle"
+                MDTextField:
+                    id: name
+                    hint_text: app.t("name", app.lang)
+                    mode: "rectangle"
+                MDTextField:
+                    id: chip
+                    hint_text: app.t("chip", app.lang)
+                    mode: "rectangle"
+                MDRectangleFlatButton:
+                    id: breed_btn
+                    size_hint_x: 1
+                    on_release: root.pick_breed()
+                MDRectangleFlatButton:
+                    id: sex_btn
+                    size_hint_x: 1
+                    on_release: root.pick_sex()
+                MDRectangleFlatButton:
+                    id: birth_btn
+                    size_hint_x: 1
+                    on_release: root.pick_birth()
+                MDRectangleFlatButton:
+                    id: status_btn
+                    size_hint_x: 1
+                    on_release: root.pick_status()
+                MDRectangleFlatButton:
+                    id: father_btn
+                    size_hint_x: 1
+                    on_release: root.pick_parent("father")
+                MDRectangleFlatButton:
+                    id: mother_btn
+                    size_hint_x: 1
+                    on_release: root.pick_parent("mother")
+                MDTextField:
+                    id: notes
+                    hint_text: app.t("notes", app.lang)
+                    mode: "rectangle"
+                    multiline: True
+                MDRaisedButton:
+                    text: app.t("save", app.lang)
+                    size_hint_x: 1
+                    on_release: root.save()
+
+<DetailScreen>:
+    MDFloatLayout:
+        MDBoxLayout:
+            orientation: "vertical"
+            MDTopAppBar:
+                id: toolbar
+                left_action_items: [["arrow-left", lambda x: app.back()]]
+                right_action_items: [["pencil", lambda x: root.edit()], ["delete", lambda x: root.confirm_delete()]]
+            MDScrollView:
+                MDList:
+                    id: body
+        MDFloatingActionButton:
+            icon: "needle"
+            pos_hint: {"right": .96, "y": .03}
+            on_release: root.add_record()
+
+<HealthScreen>:
+    MDBoxLayout:
+        orientation: "vertical"
+        MDTopAppBar:
+            title: app.t("add_record", app.lang)
+            left_action_items: [["arrow-left", lambda x: app.back()]]
+        MDScrollView:
+            FormBox:
+                MDRectangleFlatButton:
+                    id: kind_btn
+                    size_hint_x: 1
+                    on_release: root.pick_kind()
+                MDTextField:
+                    id: title
+                    hint_text: app.t("rec_title", app.lang)
+                    mode: "rectangle"
+                MDTextField:
+                    id: dose
+                    hint_text: app.t("dose", app.lang)
+                    mode: "rectangle"
+                MDTextField:
+                    id: performer
+                    hint_text: app.t("performer", app.lang)
+                    mode: "rectangle"
+                MDRectangleFlatButton:
+                    id: done_btn
+                    size_hint_x: 1
+                    on_release: root.pick_done()
+                MDRectangleFlatButton:
+                    id: next_btn
+                    size_hint_x: 1
+                    on_release: root.pick_next()
+                MDRaisedButton:
+                    text: app.t("save", app.lang)
+                    size_hint_x: 1
+                    on_release: root.save()
+
+<ReproScreen>:
+    MDBoxLayout:
+        orientation: "vertical"
+        MDTopAppBar:
+            title: root.title_text
+            left_action_items: [["arrow-left", lambda x: app.back()]]
+        MDScrollView:
+            FormBox:
+                MDRectangleFlatButton:
+                    id: date_btn
+                    size_hint_x: 1
+                    on_release: root.pick_date()
+                MDRectangleFlatButton:
+                    id: partner_btn
+                    size_hint_x: 1
+                    on_release: root.pick_partner()
+                MDBoxLayout:
+                    orientation: "vertical"
+                    size_hint_y: None
+                    height: self.minimum_height if root.is_lambing else 0
+                    spacing: dp(12)
+                    opacity: 1 if root.is_lambing else 0
+                    disabled: not root.is_lambing
+                    MDTextField:
+                        id: males
+                        hint_text: app.t("males_count", app.lang)
+                        mode: "rectangle"
+                        input_filter: "int"
+                    MDTextField:
+                        id: females
+                        hint_text: app.t("females_count", app.lang)
+                        mode: "rectangle"
+                        input_filter: "int"
+                MDRaisedButton:
+                    text: app.t("save", app.lang)
+                    size_hint_x: 1
+                    on_release: root.save()
+
+<TaskScreen>:
+    MDBoxLayout:
+        orientation: "vertical"
+        MDTopAppBar:
+            title: app.t("add_task", app.lang)
+            left_action_items: [["arrow-left", lambda x: app.back()]]
+        MDScrollView:
+            FormBox:
+                MDTextField:
+                    id: title
+                    hint_text: app.t("task_title", app.lang)
+                    mode: "rectangle"
+                MDRectangleFlatButton:
+                    id: date_btn
+                    size_hint_x: 1
+                    on_release: root.pick_date()
+                MDRectangleFlatButton:
+                    id: animal_btn
+                    size_hint_x: 1
+                    on_release: root.pick_animal()
+                MDRaisedButton:
+                    text: app.t("save", app.lang)
+                    size_hint_x: 1
+                    on_release: root.save()
