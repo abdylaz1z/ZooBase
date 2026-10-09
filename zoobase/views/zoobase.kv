@@ -1,14 +1,60 @@
 #:import dp kivy.metrics.dp
 
+<MDScreen>:
+    canvas.before:
+        Color:
+            rgba: app.canvas_color
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
+<MDTopAppBar>:
+    md_bg_color: app.brand_color
+    specific_text_color: app.brand_text_color
+    icon_color: app.brand_text_color
+    elevation: 2
+
+<MDRaisedButton>:
+    md_bg_color: app.accent_color
+    theme_text_color: "Custom"
+    text_color: app.accent_text_color
+    elevation: 2
+
+<MDFloatingActionButton>:
+    md_bg_color: app.accent_color
+    icon_color: app.accent_text_color
+    elevation: 4
+
+<MDRectangleFlatButton>:
+    theme_text_color: "Custom"
+    text_color: app.brand_color
+    line_color: app.brand_color
+
+<OneLineListItem>:
+    bg_color: app.surface_color
+    radius: [dp(14)]
+    divider: None
+
+<TwoLineListItem>:
+    bg_color: app.surface_color
+    radius: [dp(14)]
+    divider: None
+
+<TwoLineAvatarIconListItem>:
+    bg_color: app.surface_color
+    radius: [dp(14)]
+    divider: None
+
 <FormBox@MDBoxLayout>:
     orientation: "vertical"
     adaptive_height: True
-    spacing: dp(12)
-    padding: [max(dp(16), (self.width - dp(560)) / 2), dp(16)]
+    spacing: dp(14)
+    padding: [max(dp(18), (self.width - dp(560)) / 2), dp(20)]
 
 <RegisterScreen>:
     MDBoxLayout:
         orientation: "vertical"
+        md_bg_color: app.canvas_color
         MDTopAppBar:
             title: app.t("register_title", app.lang)
         MDScrollView:
@@ -16,6 +62,9 @@
                 MDLabel:
                     text: app.t("register_hint", app.lang)
                     adaptive_height: True
+                    theme_text_color: "Custom"
+                    text_color: app.muted_color
+                    font_style: "Body1"
                 MDTextField:
                     id: farm_name
                     hint_text: app.t("farm_name", app.lang)
@@ -52,19 +101,27 @@
 <HomeScreen>:
     MDBottomNavigation:
         id: nav
+        panel_color: app.brand_color
+        text_color_normal: 0.86, 0.91, 0.87, 1
+        text_color_active: app.accent_color
+        selected_color_background: 0.16, 0.40, 0.30, 1
         MDBottomNavigationItem:
             name: "tab_tasks"
             text: app.t("tab_tasks", app.lang)
             icon: "calendar-check"
+            panel_color: app.brand_color
             on_tab_press: root.refresh_tasks()
             MDFloatLayout:
                 MDBoxLayout:
                     orientation: "vertical"
+                    md_bg_color: app.canvas_color
                     MDTopAppBar:
                         title: app.t("tab_tasks", app.lang)
                     MDScrollView:
                         MDList:
                             id: tasks_list
+                            spacing: dp(8)
+                            padding: [dp(12), dp(12), dp(12), dp(96)]
                 MDFloatingActionButton:
                     icon: "plus"
                     pos_hint: {"right": .95, "y": .04}
@@ -73,23 +130,27 @@
             name: "tab_animals"
             text: app.t("tab_animals", app.lang)
             icon: "sheep"
+            panel_color: app.brand_color
             on_tab_press: root.refresh_animals()
             MDFloatLayout:
                 MDBoxLayout:
                     orientation: "vertical"
+                    md_bg_color: app.canvas_color
                     MDTopAppBar:
                         title: app.t("tab_animals", app.lang)
                     MDBoxLayout:
                         adaptive_height: True
-                        padding: dp(12), dp(4), dp(12), 0
+                        padding: dp(14), dp(6), dp(14), 0
+                        md_bg_color: app.canvas_color
                         MDTextField:
                             id: search
                             hint_text: app.t("search_hint", app.lang)
                             on_text: root.refresh_animals()
                     MDBoxLayout:
                         adaptive_height: True
-                        padding: dp(12), 0, dp(12), dp(4)
-                        spacing: dp(6)
+                        padding: dp(14), dp(2), dp(14), dp(6)
+                        spacing: dp(8)
+                        md_bg_color: app.canvas_color
                         MDRectangleFlatButton:
                             id: f_breed
                             size_hint_x: 1
@@ -108,11 +169,16 @@
                     MDLabel:
                         id: count_label
                         adaptive_height: True
-                        padding: dp(16), 0
+                        padding: dp(16), dp(4)
                         font_style: "Caption"
+                        theme_text_color: "Custom"
+                        text_color: app.muted_color
+                        md_bg_color: app.canvas_color
                     MDScrollView:
                         MDList:
                             id: animals_list
+                            spacing: dp(8)
+                            padding: [dp(12), dp(12), dp(12), dp(96)]
                 MDFloatingActionButton:
                     icon: "plus"
                     pos_hint: {"right": .95, "y": .04}
@@ -121,36 +187,188 @@
             name: "tab_profile"
             text: app.t("tab_profile", app.lang)
             icon: "home-account"
+            panel_color: app.brand_color
             on_tab_press: root.refresh_profile()
             MDBoxLayout:
                 orientation: "vertical"
+                md_bg_color: app.canvas_color
                 MDTopAppBar:
                     title: app.t("tab_profile", app.lang)
                 MDScrollView:
                     FormBox:
-                        MDLabel:
-                            id: farm_info
-                            adaptive_height: True
-                        MDLabel:
-                            text: app.t("language", app.lang)
-                            adaptive_height: True
-                            font_style: "Subtitle1"
+                        MDCard:
+                            orientation: "vertical"
+                            size_hint_y: None
+                            height: dp(152)
+                            padding: dp(18)
+                            radius: [dp(18)]
+                            elevation: 1
+                            md_bg_color: app.surface_color
+                            MDLabel:
+                                id: farm_title
+                                adaptive_height: True
+                                font_style: "H6"
+                                theme_text_color: "Custom"
+                                text_color: app.ink_color
+                            MDLabel:
+                                id: farm_meta
+                                adaptive_height: True
+                                theme_text_color: "Custom"
+                                text_color: app.muted_color
+                            MDLabel:
+                                id: farm_owner
+                                adaptive_height: True
+                                theme_text_color: "Custom"
+                                text_color: app.muted_color
                         MDBoxLayout:
                             adaptive_height: True
                             spacing: dp(8)
-                            MDRaisedButton:
-                                text: "Кыргызча"
-                                size_hint_x: .5
-                                on_release: app.set_lang("ky")
-                            MDRaisedButton:
-                                text: "Русский"
-                                size_hint_x: .5
-                                on_release: app.set_lang("ru")
-                        MDBoxLayout:
-                            adaptive_height: True
-                            height: dp(56)
+                            MDCard:
+                                orientation: "vertical"
+                                size_hint_y: None
+                                height: dp(94)
+                                padding: dp(8)
+                                radius: [dp(16)]
+                                elevation: 1
+                                md_bg_color: app.surface_color
+                                MDLabel:
+                                    id: total_value
+                                    adaptive_height: True
+                                    halign: "center"
+                                    font_style: "H5"
+                                    theme_text_color: "Custom"
+                                    text_color: app.brand_color
+                                MDLabel:
+                                    text: app.t("total", app.lang)
+                                    adaptive_height: True
+                                    halign: "center"
+                                    font_style: "Caption"
+                                    theme_text_color: "Custom"
+                                    text_color: app.muted_color
+                            MDCard:
+                                orientation: "vertical"
+                                size_hint_y: None
+                                height: dp(94)
+                                padding: dp(8)
+                                radius: [dp(16)]
+                                elevation: 1
+                                md_bg_color: app.surface_color
+                                MDLabel:
+                                    id: male_value
+                                    adaptive_height: True
+                                    halign: "center"
+                                    font_style: "H5"
+                                    theme_text_color: "Custom"
+                                    text_color: app.brand_color
+                                MDLabel:
+                                    text: app.t("males", app.lang)
+                                    adaptive_height: True
+                                    halign: "center"
+                                    font_style: "Caption"
+                                    theme_text_color: "Custom"
+                                    text_color: app.muted_color
+                            MDCard:
+                                orientation: "vertical"
+                                size_hint_y: None
+                                height: dp(94)
+                                padding: dp(8)
+                                radius: [dp(16)]
+                                elevation: 1
+                                md_bg_color: app.surface_color
+                                MDLabel:
+                                    id: female_value
+                                    adaptive_height: True
+                                    halign: "center"
+                                    font_style: "H5"
+                                    theme_text_color: "Custom"
+                                    text_color: app.brand_color
+                                MDLabel:
+                                    text: app.t("females", app.lang)
+                                    adaptive_height: True
+                                    halign: "center"
+                                    font_style: "Caption"
+                                    theme_text_color: "Custom"
+                                    text_color: app.muted_color
+                        MDCard:
+                            orientation: "vertical"
+                            size_hint_y: None
+                            height: dp(104)
+                            padding: dp(16), dp(10)
+                            spacing: dp(4)
+                            radius: [dp(16)]
+                            elevation: 1
+                            md_bg_color: app.surface_color
+                            MDBoxLayout:
+                                adaptive_height: True
+                                MDLabel:
+                                    text: app.t("fertility", app.lang)
+                                    theme_text_color: "Custom"
+                                    text_color: app.muted_color
+                                MDLabel:
+                                    id: fertility_value
+                                    size_hint_x: None
+                                    width: dp(64)
+                                    halign: "right"
+                                    theme_text_color: "Custom"
+                                    text_color: app.ink_color
+                            MDBoxLayout:
+                                adaptive_height: True
+                                MDLabel:
+                                    text: app.t("unsynced", app.lang)
+                                    theme_text_color: "Custom"
+                                    text_color: app.muted_color
+                                MDLabel:
+                                    id: unsynced_value
+                                    size_hint_x: None
+                                    width: dp(64)
+                                    halign: "right"
+                                    theme_text_color: "Custom"
+                                    text_color: app.ink_color
+                        MDCard:
+                            orientation: "vertical"
+                            size_hint_y: None
+                            height: dp(122)
+                            padding: dp(16), dp(12)
+                            spacing: dp(8)
+                            radius: [dp(16)]
+                            elevation: 1
+                            md_bg_color: app.surface_color
+                            MDLabel:
+                                text: app.t("language", app.lang)
+                                adaptive_height: True
+                                font_style: "Subtitle1"
+                                theme_text_color: "Custom"
+                                text_color: app.ink_color
+                            MDBoxLayout:
+                                adaptive_height: True
+                                spacing: dp(8)
+                                MDRectangleFlatButton:
+                                    id: lang_ky_btn
+                                    text: "Кыргызча"
+                                    size_hint_x: .5
+                                    md_bg_color: app.accent_color if app.lang == "ky" else app.surface_color
+                                    line_color: app.accent_color if app.lang == "ky" else app.brand_color
+                                    text_color: app.accent_text_color if app.lang == "ky" else app.brand_color
+                                    on_release: app.set_lang("ky")
+                                MDRectangleFlatButton:
+                                    id: lang_ru_btn
+                                    text: "Русский"
+                                    size_hint_x: .5
+                                    md_bg_color: app.accent_color if app.lang == "ru" else app.surface_color
+                                    line_color: app.accent_color if app.lang == "ru" else app.brand_color
+                                    text_color: app.accent_text_color if app.lang == "ru" else app.brand_color
+                                    on_release: app.set_lang("ru")
+                        MDCard:
+                            size_hint_y: None
+                            height: dp(68)
+                            padding: dp(16), dp(8)
+                            radius: [dp(16)]
+                            elevation: 1
+                            md_bg_color: app.surface_color
                             MDLabel:
                                 text: app.t("dark_theme", app.lang)
+                                theme_text_color: "Custom"
+                                text_color: app.ink_color
                             MDSwitch:
                                 id: dark_switch
                                 size_hint: None, None
@@ -169,7 +387,9 @@
                 MDCard:
                     size_hint_y: None
                     height: dp(180)
-                    radius: [dp(12)]
+                    radius: [dp(18)]
+                    elevation: 1
+                    md_bg_color: app.surface_color
                     on_release: root.pick_photo()
                     MDFloatLayout:
                         MDIcon:
@@ -185,8 +405,9 @@
                         FitImage:
                             id: photo_img
                             source: ""
+                            pos_hint: {"x": 0, "y": 0}
                             opacity: 0
-                            radius: [dp(12)]
+                            radius: [dp(18)]
                 MDFlatButton:
                     text: app.t("remove_photo", app.lang)
                     opacity: 1 if root.has_photo else 0
@@ -247,12 +468,196 @@
                 left_action_items: [["arrow-left", lambda x: app.back()]]
                 right_action_items: [["pencil", lambda x: root.edit()], ["delete", lambda x: root.confirm_delete()]]
             MDScrollView:
-                MDList:
+                bar_width: 0
+                MDBoxLayout:
                     id: body
+                    orientation: "vertical"
+                    adaptive_height: True
+                    spacing: dp(12)
+                    padding: [max(dp(14), (self.width - dp(560)) / 2), dp(14)]
         MDFloatingActionButton:
             icon: "needle"
             pos_hint: {"right": .96, "y": .03}
             on_release: root.add_record()
+
+<PhotoView>:
+    fit_mode: "cover"
+    canvas.before:
+        StencilPush
+        Color:
+            rgba: 1, 1, 1, 1
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [dp(22)]
+        StencilUse
+    canvas.after:
+        StencilUnUse
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [dp(22)]
+        StencilPop
+
+<SectionLabel>:
+    adaptive_height: True
+    font_style: "Subtitle1"
+    theme_text_color: "Custom"
+    text_color: app.ink_color
+    padding: dp(4), dp(8), 0, 0
+
+<SoftCard>:
+    orientation: "vertical"
+    adaptive_height: True
+    padding: dp(16), dp(8)
+    radius: [dp(18)]
+    elevation: 1
+    md_bg_color: app.surface_color
+
+<HeroCard>:
+    size_hint_y: None
+    height: dp(280)
+    radius: [dp(22)]
+    elevation: 1
+    md_bg_color: app.brand_color
+    MDFloatLayout:
+        PhotoView:
+            source: root.source
+            pos_hint: {"x": 0, "y": 0}
+            opacity: 1 if root.source else 0
+        MDIcon:
+            icon: "sheep"
+            font_size: "110sp"
+            halign: "center"
+            theme_text_color: "Custom"
+            text_color: 1, 1, 1, .22
+            pos_hint: {"center_x": .5, "center_y": .58}
+            opacity: 0 if root.source else 1
+        Widget:
+            size_hint: 1, None
+            height: dp(120)
+            pos_hint: {"x": 0, "y": 0}
+            canvas:
+                Color:
+                    rgba: 0, 0, 0, .5
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [0, 0, dp(22), dp(22)]
+        MDLabel:
+            text: root.title
+            font_style: "H5"
+            theme_text_color: "Custom"
+            text_color: 1, 1, 1, 1
+            size_hint: .9, None
+            height: dp(36)
+            pos_hint: {"x": .05, "y": .17}
+        MDLabel:
+            text: root.subtitle
+            font_style: "Subtitle2"
+            theme_text_color: "Custom"
+            text_color: 1, 1, 1, .85
+            size_hint: .9, None
+            height: dp(24)
+            pos_hint: {"x": .05, "y": .07}
+        MDCard:
+            size_hint: None, None
+            size: root.chip_w, dp(30)
+            radius: [dp(15)]
+            elevation: 0
+            md_bg_color: root.status_color
+            pos_hint: {"right": .96, "top": .96}
+            MDLabel:
+                text: root.status_text
+                halign: "center"
+                font_style: "Caption"
+                theme_text_color: "Custom"
+                text_color: 1, 1, 1, 1
+
+<StatTile>:
+    orientation: "vertical"
+    size_hint_y: None
+    height: dp(92)
+    padding: dp(6)
+    radius: [dp(16)]
+    elevation: 1
+    md_bg_color: app.surface_color
+    MDIcon:
+        icon: root.icon
+        halign: "center"
+        theme_text_color: "Custom"
+        text_color: app.brand_color
+        size_hint_y: None
+        height: dp(30)
+    MDLabel:
+        text: root.value
+        halign: "center"
+        font_style: "Subtitle2"
+        theme_text_color: "Custom"
+        text_color: app.ink_color
+    MDLabel:
+        text: root.caption
+        halign: "center"
+        font_style: "Caption"
+        theme_text_color: "Custom"
+        text_color: app.muted_color
+        size_hint_y: None
+        height: dp(18)
+
+<LinkRow>:
+    orientation: "horizontal"
+    size_hint_y: None
+    height: dp(66)
+    padding: dp(10), dp(8)
+    spacing: dp(10)
+    radius: [dp(16)]
+    elevation: 1
+    md_bg_color: app.surface_color
+    MDCard:
+        size_hint: None, None
+        size: dp(40), dp(40)
+        pos_hint: {"center_y": .5}
+        radius: [dp(20)]
+        elevation: 0
+        md_bg_color: root.tint[:3] + [.16]
+        MDIcon:
+            icon: root.icon
+            halign: "center"
+            pos_hint: {"center_x": .5, "center_y": .5}
+            theme_text_color: "Custom"
+            text_color: root.tint
+    MDBoxLayout:
+        orientation: "vertical"
+        pos_hint: {"center_y": .5}
+        adaptive_height: True
+        MDLabel:
+            text: root.title
+            font_style: "Subtitle2"
+            theme_text_color: "Custom"
+            text_color: app.ink_color
+            size_hint_y: None
+            height: dp(22)
+            text_size: self.width, None
+            shorten: True
+            shorten_from: "right"
+        MDLabel:
+            text: root.caption
+            font_style: "Caption"
+            theme_text_color: "Custom"
+            text_color: app.muted_color
+            size_hint_y: None
+            height: dp(18)
+            text_size: self.width, None
+            shorten: True
+            shorten_from: "right"
+    MDLabel:
+        text: root.tag
+        halign: "right"
+        font_style: "Caption"
+        theme_text_color: "Custom"
+        text_color: root.tag_color
+        size_hint_x: None
+        width: dp(84) if root.tag else 0
 
 <HealthScreen>:
     MDBoxLayout:

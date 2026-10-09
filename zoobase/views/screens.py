@@ -4,17 +4,19 @@ import os
 from datetime import date
 
 from kivy.metrics import dp
-from kivy.properties import BooleanProperty, StringProperty
+from kivy.properties import BooleanProperty, ListProperty, NumericProperty, StringProperty
 from kivy.utils import platform
 from kivy.uix.widget import Widget
 from kivymd.app import MDApp
+from kivy.uix.image import Image
+from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.button import MDFlatButton
+from kivymd.uix.card import MDCard
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.filemanager import MDFileManager
-from kivymd.uix.fitimage import FitImage
 from kivymd.uix.label import MDLabel
 from kivymd.uix.list import (IconLeftWidget, IconRightWidget, MDList, OneLineListItem,
-                             TwoLineAvatarIconListItem, TwoLineListItem)
+                             TwoLineAvatarIconListItem)
 from kivymd.uix.scrollview import MDScrollView
 from kivymd.uix.pickers import MDDatePicker
 from kivymd.uix.screen import MDScreen
@@ -122,6 +124,7 @@ class HomeScreen(MDScreen):
             if not groups[key]:
                 continue
             box.add_widget(MDLabel(text=T(key), font_style="Subtitle1", adaptive_height=True,
+                                   theme_text_color="Custom", text_color=a.brand_color,
                                    padding=(dp(16), dp(12))))
             for t in groups[key]:
                 who = label_of(t.animal) if t.animal_id else ""
@@ -202,11 +205,17 @@ class HomeScreen(MDScreen):
         st = a.animals.stats(a.farm)
         fert = a.repro.fertility(a.farm)
         fert = f"{fert:.2f}" if fert is not None else "—"
-        self.ids.farm_info.text = (
-            f"{T('farm')}: {a.farm.name}\n{a.farm.region}\n"
-            f"{T('owner')}: {owner.name if owner else ''}  {owner.phone if owner else ''}\n\n"
-            f"{T('total')}: {st['total']}\n{T('males')}: {st['male']}\n{T('females')}: {st['female']}\n\n"
-            f"{T('fertility')}: {fert}\n{T('unsynced')}: {a.farms.unsynced_count()}")
+        self.ids.farm_title.text = a.farm.name
+        self.ids.farm_meta.text = f"{T('region')}: {a.farm.region}" if a.farm.region else "—"
+        owner_details = " · ".join(
+            value for value in (owner.name if owner else "", owner.phone if owner else "") if value
+        )
+        self.ids.farm_owner.text = f"{T('owner')}: {owner_details}" if owner_details else "—"
+        self.ids.total_value.text = str(st["total"])
+        self.ids.male_value.text = str(st["male"])
+        self.ids.female_value.text = str(st["female"])
+        self.ids.fertility_value.text = fert
+        self.ids.unsynced_value.text = str(a.farms.unsynced_count())
         self.ids.dark_switch.active = a.theme_cls.theme_style == "Dark"
 
 
@@ -324,6 +333,45 @@ class FormScreen(MDScreen):
             a.back()
 
 
+class PhotoView(Image):
+    """Фото с обрезкой по рамке и скруглёнными углами (правила в zoobase.kv)."""
+
+
+class HeroCard(MDCard):
+    """Большая карточка сверху: фото (или заглушка), имя, номер и цветной статус."""
+    source = StringProperty("")
+    title = StringProperty("")
+    subtitle = StringProperty("")
+    status_text = StringProperty("")
+    status_color = ListProperty([1, 1, 1, 1])
+    chip_w = NumericProperty(120)
+
+
+class StatTile(MDCard):
+    """Плитка с иконкой, значением и подписью."""
+    icon = StringProperty("")
+    value = StringProperty("")
+    caption = StringProperty("")
+
+
+class LinkRow(MDCard):
+    """Строка с цветной иконкой, заголовком, подписью и меткой справа (для родословной, здоровья, репродукции)."""
+    icon = StringProperty("")
+    title = StringProperty("")
+    caption = StringProperty("")
+    tag = StringProperty("")
+    tint = ListProperty([0.1, 0.3, 0.2, 1])
+    tag_color = ListProperty([0.4, 0.47, 0.42, 1])
+
+
+class SoftCard(MDCard):
+    pass
+
+
+class SectionLabel(MDLabel):
+    pass
+
+
 class DetailScreen(MDScreen):
     def __init__(self, **kw):
         super().__init__(**kw)
@@ -350,64 +398,114 @@ class DetailScreen(MDScreen):
         if not an:
             return
         self.ids.toolbar.title = label_of(an)
-        if an.photo and os.path.exists(an.photo):
-            box.add_widget(FitImage(source=an.photo, size_hint_y=None, height=dp(240)))
+        tint = list(a.brand_color)
+
+        def muted_label(text):
+            return MDLabel(text=text, adaptive_height=True, padding=(dp(6), dp(2)), font_style="Body2",
+                           theme_text_color="Custom", text_color=a.muted_color)
+
+        def info(label, value):
+            row = MDBoxLayout(adaptive_height=True, padding=(0, dp(6)), spacing=dp(8))
+            row.add_widget(MDLabel(text=label, adaptive_height=True, size_hint_x=.55, font_style="Body2",
+                                   theme_text_color="Custom", text_color=a.muted_color))
+            row.add_widget(MDLabel(text=value, adaptive_height=True, halign="right", font_style="Body2",
+                                   theme_text_color="Custom", text_color=a.ink_color))
+            return row
+
+        # --- большая карточка: фото, имя, статус ---
+        urgency = a.tasks.urgency_map(a.farm).get(an.id)
+        if an.status in ("sold", "culled", "dead"):
+            color = GREY
+        elif urgency == "red":
+            color = RED
+        elif urgency == "yellow" or an.status == "quarantine":
+            color = YELLOW
+        else:
+            color = GREEN
+        status = T("st_" + an.status)
+        hero = HeroCard(source=an.photo if an.photo and os.path.exists(an.photo) else "",
+                        title=an.name or an.tag,
+                        subtitle=(f"{an.tag} · " if an.name else "") + T("breed_" + an.breed),
+                        status_text=status, status_color=list(color), chip_w=dp(30) + len(status) * dp(8))
+        hero.bind(on_release=lambda *_: self.edit())
+        box.add_widget(hero)
+
+        # --- плитки: пол, возраст, потомство ---
         age = age_parts(an.birth_date)
-        rows = [(T("breed"), T("breed_" + an.breed)), (T("sex"), T(an.sex)),
-                (T("status"), T("st_" + an.status)),
-                (T("birth_date"), fmt(an.birth_date)),
-                (T("age"), f"{age[0]} {T('y_short')} {age[1]} {T('m_short')}" if age else T("not_set")),
-                (T("chip"), an.chip or T("not_set")),
-                (T("offspring"), str(len(a.animals.offspring(an))))]
-        for label, value in rows:
-            box.add_widget(TwoLineListItem(text=value, secondary_text=label, _no_ripple_effect=True))
-        father, mother = a.animals.parents(an)
-        for which, parent in (("father", father), ("mother", mother)):
-            box.add_widget(TwoLineListItem(
-                text=label_of(parent) if parent else T("not_set"), secondary_text=T(which),
-                on_release=(lambda *_, pid=parent.id: self.push(pid)) if parent else (lambda *_: None)))
+        age_txt = f"{age[0]} {T('y_short')} {age[1]} {T('m_short')}" if age else "—"
+        tiles = MDBoxLayout(adaptive_height=True, spacing=dp(10))
+        for icon, value, caption in (
+                ("gender-female" if an.sex == "female" else "gender-male", T(an.sex), T("sex")),
+                ("cake-variant", age_txt, T("age")),
+                ("baby-face-outline", str(len(a.animals.offspring(an))), T("offspring_short"))):
+            tiles.add_widget(StatTile(icon=icon, value=value, caption=caption))
+        box.add_widget(tiles)
+
+        # --- о животном ---
+        about = SoftCard()
+        about.add_widget(info(T("birth_date"), fmt(an.birth_date)))
+        about.add_widget(info(T("chip"), an.chip or T("not_set")))
         if an.notes:
-            box.add_widget(TwoLineListItem(text=an.notes, secondary_text=T("notes"), _no_ripple_effect=True))
-        far = [(p, x) for p, x in a.animals.pedigree(an) if len(p) >= 2]
-        if far:
-            box.add_widget(MDLabel(text=T("pedigree"), font_style="Subtitle1", adaptive_height=True,
-                                   padding=(dp(16), dp(12))))
-            for path, anc in far:
-                box.add_widget(TwoLineListItem(text=label_of(anc), secondary_text=anc_label(path),
-                                               on_release=lambda *_, pid=anc.id: self.push(pid)))
+            about.add_widget(info(T("notes"), an.notes))
+        box.add_widget(SectionLabel(text=T("about")))
+        box.add_widget(about)
+
+        # --- родословная: родители рядом, дальше предки ---
+        box.add_widget(SectionLabel(text=T("pedigree")))
+        father, mother = a.animals.parents(an)
+        parents = MDBoxLayout(adaptive_height=True, spacing=dp(10))
+        for which, parent, icon in (("father", father, "gender-male"), ("mother", mother, "gender-female")):
+            row = LinkRow(icon=icon, title=(parent.name or parent.tag) if parent else T("not_set"),
+                          caption=f"{T(which)} · {parent.tag}" if parent and parent.name else T(which), tint=tint)
+            if parent:
+                row.bind(on_release=lambda *_, pid=parent.id: self.push(pid))
+            parents.add_widget(row)
+        box.add_widget(parents)
+        for path, anc in [(p, x) for p, x in a.animals.pedigree(an) if len(p) >= 2]:
+            row = LinkRow(icon="family-tree", title=anc.name or anc.tag,
+                          caption=f"{anc_label(path)} · {anc.tag}" if anc.name else anc_label(path),
+                          tint=list(a.muted_color))
+            row.bind(on_release=lambda *_, pid=anc.id: self.push(pid))
+            box.add_widget(row)
+
+        # --- репродукция (только матки) ---
         if an.sex == "female":
-            box.add_widget(MDLabel(text=T("repro"), font_style="Subtitle1", adaptive_height=True,
-                                   padding=(dp(16), dp(12))))
+            box.add_widget(SectionLabel(text=T("repro")))
             expected = a.repro.expected_lambing(an)
             if expected:
-                box.add_widget(TwoLineListItem(text=fmt(expected), secondary_text=T("expected"),
-                                               _no_ripple_effect=True))
+                box.add_widget(LinkRow(icon="calendar-clock", title=fmt(expected), caption=T("expected"),
+                                       tint=list(YELLOW)))
             events = a.repro.list_for(an)
-            if not events:
-                box.add_widget(OneLineListItem(text=T("no_records"), _no_ripple_effect=True))
+            if not events and not expected:
+                box.add_widget(muted_label(T("no_records")))
             for ev in events:
                 if ev.kind == "mating":
                     partner = a.animals.get(ev.partner_id)
                     head = f"{T('ev_mating')}: {label_of(partner) if partner else T('not_set')}"
-                    sub = fmt(ev.event_date)
+                    sub, icon, col = fmt(ev.event_date), "heart-outline", tint
                 else:
                     head = f"{T('ev_lambing')}: {ev.males + ev.females}"
                     sub = (f"{fmt(ev.event_date)} · {T('males_count')} {ev.males} · "
                            f"{T('females_count')} {ev.females}")
-                box.add_widget(TwoLineListItem(text=head, secondary_text=sub, _no_ripple_effect=True))
-        box.add_widget(MDLabel(text=T("health"), font_style="Subtitle1", adaptive_height=True,
-                               padding=(dp(16), dp(12))))
+                    icon, col = "baby-carriage", list(GREEN)
+                box.add_widget(LinkRow(icon=icon, title=head, caption=sub, tint=col))
+
+        # --- здоровье ---
+        box.add_widget(SectionLabel(text=T("health")))
         records = a.health.list_for(an)
         if not records:
-            box.add_widget(OneLineListItem(text=T("no_records"), _no_ripple_effect=True))
+            box.add_widget(muted_label(T("no_records")))
+        kinds = {"vaccine": ("needle", GREEN), "parasite": ("bug-outline", YELLOW),
+                 "disease": ("medical-bag", RED), "note": ("note-text-outline", a.muted_color)}
         for r in records:
-            extra = " · ".join(x for x in (r.dose, r.performer) if x)
-            nxt = f" → {fmt(r.next_date)}" if r.next_date else ""
-            box.add_widget(TwoLineListItem(
-                text=f"{T('k_' + r.kind)}: {r.title}",
-                secondary_text=f"{fmt(r.done_date)}{(' · ' + extra) if extra else ''}{nxt}",
-                _no_ripple_effect=True))
-        box.add_widget(Widget(size_hint_y=None, height=dp(96)))  # место под кнопку «+»
+            icon, col = kinds.get(r.kind, kinds["note"])
+            extra = " · ".join(x for x in (fmt(r.done_date), r.dose, r.performer) if x)
+            overdue = bool(r.next_date) and r.next_date < date.today()
+            box.add_widget(LinkRow(
+                icon=icon, title=f"{T('k_' + r.kind)}: {r.title}", caption=extra, tint=list(col),
+                tag=f"{T('next_short')}\n{fmt(r.next_date)}" if r.next_date else "",
+                tag_color=list(RED if overdue else a.muted_color)))
+        box.add_widget(Widget(size_hint_y=None, height=dp(90)))  # место под кнопку «+»
 
     def edit(self):
         app().open_form(self.animal_id)
