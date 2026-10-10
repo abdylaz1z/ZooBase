@@ -92,6 +92,8 @@ ALL_MODELS = [Farm, User, Animal, HealthRecord, Task, ReproEvent, AppSetting]
 
 
 def init_db(path: str) -> None:
+    if not db.is_closed():
+        db.close()
     db.init(path, pragmas={"foreign_keys": 1, "journal_mode": "wal"})
     db.connect(reuse_if_open=True)
     db.create_tables(ALL_MODELS)

@@ -1,4 +1,4 @@
-kivy==2.3.0
+kivy==2.3.1
 kivymd==1.2.0
-peewee>=3.17
+peewee==3.17.9
 pillow

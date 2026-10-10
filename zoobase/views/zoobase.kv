@@ -27,8 +27,8 @@
 
 <MDRectangleFlatButton>:
     theme_text_color: "Custom"
-    text_color: app.brand_color
-    line_color: app.brand_color
+    text_color: app.action_color
+    line_color: app.action_color
 
 <OneLineListItem>:
     bg_color: app.surface_color
@@ -86,6 +86,10 @@
                     text: app.t("create_farm", app.lang)
                     size_hint_x: 1
                     on_release: root.submit()
+                MDRectangleFlatButton:
+                    text: app.t("restore", app.lang)
+                    size_hint_x: 1
+                    on_release: app.import_data()
                 MDBoxLayout:
                     adaptive_height: True
                     spacing: dp(8)
@@ -145,27 +149,27 @@
                         MDTextField:
                             id: search
                             hint_text: app.t("search_hint", app.lang)
-                            on_text: root.refresh_animals()
-                    MDBoxLayout:
-                        adaptive_height: True
-                        padding: dp(14), dp(2), dp(14), dp(6)
-                        spacing: dp(8)
-                        md_bg_color: app.canvas_color
-                        MDRectangleFlatButton:
-                            id: f_breed
-                            size_hint_x: 1
-                            font_size: "12sp"
-                            on_release: root.pick_filter("breed")
-                        MDRectangleFlatButton:
-                            id: f_sex
-                            size_hint_x: 1
-                            font_size: "12sp"
-                            on_release: root.pick_filter("sex")
-                        MDRectangleFlatButton:
-                            id: f_status
-                            size_hint_x: 1
-                            font_size: "12sp"
-                            on_release: root.pick_filter("status")
+                            on_text: root.schedule_search()
+                    MDScrollView:
+                        size_hint_y: None
+                        height: dp(60)
+                        do_scroll_y: False
+                        bar_width: 0
+                        MDBoxLayout:
+                            adaptive_height: True
+                            size_hint_x: None
+                            width: self.minimum_width
+                            padding: dp(14), dp(2), dp(14), dp(6)
+                            spacing: dp(8)
+                            MDRectangleFlatButton:
+                                id: f_breed
+                                on_release: root.pick_filter("breed")
+                            MDRectangleFlatButton:
+                                id: f_sex
+                                on_release: root.pick_filter("sex")
+                            MDRectangleFlatButton:
+                                id: f_status
+                                on_release: root.pick_filter("status")
                     MDLabel:
                         id: count_label
                         adaptive_height: True
@@ -237,7 +241,7 @@
                                     halign: "center"
                                     font_style: "H5"
                                     theme_text_color: "Custom"
-                                    text_color: app.brand_color
+                                    text_color: app.action_color
                                 MDLabel:
                                     text: app.t("total", app.lang)
                                     adaptive_height: True
@@ -259,7 +263,7 @@
                                     halign: "center"
                                     font_style: "H5"
                                     theme_text_color: "Custom"
-                                    text_color: app.brand_color
+                                    text_color: app.action_color
                                 MDLabel:
                                     text: app.t("males", app.lang)
                                     adaptive_height: True
@@ -281,7 +285,7 @@
                                     halign: "center"
                                     font_style: "H5"
                                     theme_text_color: "Custom"
-                                    text_color: app.brand_color
+                                    text_color: app.action_color
                                 MDLabel:
                                     text: app.t("females", app.lang)
                                     adaptive_height: True
@@ -299,7 +303,8 @@
                             elevation: 1
                             md_bg_color: app.surface_color
                             MDBoxLayout:
-                                adaptive_height: True
+                                size_hint_y: None
+                                height: dp(38)
                                 MDLabel:
                                     text: app.t("fertility", app.lang)
                                     theme_text_color: "Custom"
@@ -312,7 +317,8 @@
                                     theme_text_color: "Custom"
                                     text_color: app.ink_color
                             MDBoxLayout:
-                                adaptive_height: True
+                                size_hint_y: None
+                                height: dp(38)
                                 MDLabel:
                                     text: app.t("unsynced", app.lang)
                                     theme_text_color: "Custom"
@@ -324,6 +330,41 @@
                                     halign: "right"
                                     theme_text_color: "Custom"
                                     text_color: app.ink_color
+                        MDLabel:
+                            text: app.t("local_only", app.lang)
+                            adaptive_height: True
+                            theme_text_color: "Custom"
+                            text_color: app.muted_color
+                        MDRaisedButton:
+                            text: app.t("backup", app.lang)
+                            size_hint_x: 1
+                            on_release: app.export_data()
+                        MDRectangleFlatButton:
+                            text: app.t("restore", app.lang)
+                            size_hint_x: 1
+                            on_release: app.import_data()
+                        MDRectangleFlatButton:
+                            text: app.t("export_csv", app.lang)
+                            size_hint_x: 1
+                            on_release: app.export_data("csv")
+                        MDBoxLayout:
+                            size_hint_y: None
+                            height: dp(56)
+                            MDLabel:
+                                text: app.t("reminders", app.lang)
+                            MDCheckbox:
+                                id: reminders_switch
+                                color_active: app.action_color
+                                color_inactive: app.muted_color
+                                size_hint: None, None
+                                size: dp(48), dp(48)
+                                pos_hint: {"center_y": .5}
+                                on_active: app.set_reminders(self.active)
+                        MDLabel:
+                            text: app.t("reminders_hint", app.lang)
+                            adaptive_height: True
+                            theme_text_color: "Custom"
+                            text_color: app.muted_color
                         MDCard:
                             orientation: "vertical"
                             size_hint_y: None
@@ -347,16 +388,16 @@
                                     text: "Кыргызча"
                                     size_hint_x: .5
                                     md_bg_color: app.accent_color if app.lang == "ky" else app.surface_color
-                                    line_color: app.accent_color if app.lang == "ky" else app.brand_color
-                                    text_color: app.accent_text_color if app.lang == "ky" else app.brand_color
+                                    line_color: app.accent_color if app.lang == "ky" else app.action_color
+                                    text_color: app.accent_text_color if app.lang == "ky" else app.action_color
                                     on_release: app.set_lang("ky")
                                 MDRectangleFlatButton:
                                     id: lang_ru_btn
                                     text: "Русский"
                                     size_hint_x: .5
                                     md_bg_color: app.accent_color if app.lang == "ru" else app.surface_color
-                                    line_color: app.accent_color if app.lang == "ru" else app.brand_color
-                                    text_color: app.accent_text_color if app.lang == "ru" else app.brand_color
+                                    line_color: app.accent_color if app.lang == "ru" else app.action_color
+                                    text_color: app.accent_text_color if app.lang == "ru" else app.action_color
                                     on_release: app.set_lang("ru")
                         MDCard:
                             size_hint_y: None
@@ -369,10 +410,12 @@
                                 text: app.t("dark_theme", app.lang)
                                 theme_text_color: "Custom"
                                 text_color: app.ink_color
-                            MDSwitch:
+                            MDCheckbox:
                                 id: dark_switch
+                                color_active: app.action_color
+                                color_inactive: app.muted_color
                                 size_hint: None, None
-                                size: dp(54), dp(32)
+                                size: dp(48), dp(48)
                                 pos_hint: {"center_y": .5}
                                 on_active: app.set_dark(self.active)
 
@@ -437,6 +480,10 @@
                     id: birth_btn
                     size_hint_x: 1
                     on_release: root.pick_birth()
+                MDRectangleFlatButton:
+                    id: arrival_btn
+                    size_hint_x: 1
+                    on_release: root.pick_arrival()
                 MDRectangleFlatButton:
                     id: status_btn
                     size_hint_x: 1
@@ -586,7 +633,7 @@
         icon: root.icon
         halign: "center"
         theme_text_color: "Custom"
-        text_color: app.brand_color
+        text_color: app.action_color
         size_hint_y: None
         height: dp(30)
     MDLabel:
