@@ -352,10 +352,10 @@
                             height: dp(56)
                             MDLabel:
                                 text: app.t("reminders", app.lang)
-                            MDSwitch:
+                            MDCheckbox:
                                 id: reminders_switch
                                 size_hint: None, None
-                                size: dp(54), dp(32)
+                                size: dp(48), dp(48)
                                 pos_hint: {"center_y": .5}
                                 on_active: app.set_reminders(self.active)
                         MDLabel:
@@ -408,10 +408,10 @@
                                 text: app.t("dark_theme", app.lang)
                                 theme_text_color: "Custom"
                                 text_color: app.ink_color
-                            MDSwitch:
+                            MDCheckbox:
                                 id: dark_switch
                                 size_hint: None, None
-                                size: dp(54), dp(32)
+                                size: dp(48), dp(48)
                                 pos_hint: {"center_y": .5}
                                 on_active: app.set_dark(self.active)
 
