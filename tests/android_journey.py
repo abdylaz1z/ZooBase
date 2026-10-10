@@ -71,7 +71,17 @@ def tap_text(fragment):
     x = int(row["left"]) + int(row["width"]) // 2
     y = int(row["top"]) + int(row["height"]) // 2
     adb("shell", "input", "tap", str(x), str(y))
-    time.sleep(1.5)
+    time.sleep(3)
+
+
+def wait_heading(fragment):
+    # Wait for the rendered page, not just the tap: CI's software GPU can
+    # keep the previous tab visible while Kivy builds the new page.
+    for _ in range(8):
+        if any(fragment.casefold() in r["text"].casefold() and int(r["top"]) < 300 for r in words()):
+            return
+        time.sleep(1)
+    raise AssertionError(f"Page heading did not appear: {fragment}")
 
 
 def fill(fragment, value):
@@ -172,6 +182,7 @@ def main():
     shot("farm-created")
     print("Farm registration completed", flush=True)
     tap_text("Овцы")
+    wait_heading("Овцы")
     tap_gold_button()
     fill("Инвентарный", "CI-001")
     fill("Кличка", "Ovca")
@@ -188,6 +199,7 @@ def main():
     shot("animal-saved")
     print("Animal form saved", flush=True)
     tap_text("Хозяйство")
+    wait_heading("Хозяйство")
     tap_gold_button()
     shot("document-picker")
     save_document()
