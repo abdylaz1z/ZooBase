@@ -91,7 +91,7 @@ def tap_gold_button():
     rows = []
     for y in range(image.height // 3, image.height - 50):
         xs = [x for x in range(image.width // 2, image.width)
-              if (lambda p: p[0] > 230 and 120 < p[1] < 210 and p[2] < 90)(image.getpixel((x, y)))]
+              if (lambda p: p[0] > 180 and 100 < p[1] < 215 and p[0] > p[1] * 1.15 and p[2] < 90)(image.getpixel((x, y)))]
         if len(xs) > 50:
             rows.append((y, xs))
     if not rows:
@@ -151,6 +151,8 @@ def enable_reminders():
 
 def main():
     assert adb("shell", "getprop", "ro.kernel.qemu").strip() == b"1", "Test emulator required"
+    adb("shell", "settings", "put", "system", "screen_off_timeout", "1800000")
+    adb("shell", "settings", "put", "global", "stay_on_while_plugged_in", "7")
     adb("shell", "pm", "clear", PACKAGE)
     adb("logcat", "-c")
     adb("shell", "svc", "wifi", "disable")
