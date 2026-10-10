@@ -177,7 +177,8 @@ def main():
         # Use the scroll-view gutter so a drag cannot activate a form selector.
         adb("shell", "input", "swipe", str(int(image.width * .975)), str(int(image.height * .82)),
             str(int(image.width * .975)), str(int(image.height * .25)), "700")
-        time.sleep(.5)
+        time.sleep(2)
+    time.sleep(3)  # let Kivy's kinetic scrolling/overscroll return to rest
     tap_gold_button()
     time.sleep(3)  # the saved snackbar temporarily covers the bottom navigation
     shot("animal-saved")
