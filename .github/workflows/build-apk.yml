@@ -31,6 +31,7 @@ jobs:
           path: |
             ~/.buildozer
             .buildozer
+            ~/.android/debug.keystore
           key: android-v3-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}-${{ github.run_id }}
           restore-keys: |
             android-v3-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}-
@@ -44,6 +45,7 @@ jobs:
           path: |
             ~/.buildozer
             .buildozer
+            ~/.android/debug.keystore
           key: ${{ steps.build-cache.outputs.cache-primary-key }}
       - uses: actions/upload-artifact@v4
         if: always()

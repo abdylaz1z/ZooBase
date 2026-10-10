@@ -3,3 +3,11 @@ venv/
 bin/
 __pycache__/
 *.pyc
+.venv/
+ui-artifacts/
+android-artifacts/
+*.db
+*.db-wal
+*.db-shm
+*.keystore
+*.jks
