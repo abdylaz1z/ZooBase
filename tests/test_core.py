@@ -139,6 +139,34 @@ class CoreTests(unittest.TestCase):
         self.ac.remove_photo(str(outside))
         self.assertTrue(outside.exists())
 
+    def test_photo_is_resized_and_kept_after_save(self):
+        from PIL import Image
+        source = self.root / "source.png"
+        Image.new("RGBA", (1600, 1200), "green").save(source)
+        result = self.ac.store_photo(str(source))
+        self.assertTrue(result.ok)
+        with Image.open(result.data) as image:
+            self.assertEqual(image.size, (800, 600))
+            self.assertEqual(image.mode, "RGB")
+        self.animal(photo=result.data)
+        self.assertTrue(Path(result.data).is_file())
+
+    def test_old_database_photo_migration(self):
+        self.animal()
+        db.execute_sql("ALTER TABLE animal DROP COLUMN photo")
+        init_db(str(self.root / "test.db"))
+        self.assertEqual(Animal.get().photo, "")
+
+    def test_photo_replacement_removes_only_old_owned_file(self):
+        old = self.ac_dir / "old.jpg"
+        new = self.ac_dir / "new.jpg"
+        old.write_bytes(b"old")
+        new.write_bytes(b"new")
+        animal = self.animal(photo=str(old))
+        self.assertTrue(self.ac.save(self.farm, animal.id, self.data(photo=str(new))).ok)
+        self.assertFalse(old.exists())
+        self.assertTrue(new.exists())
+
     def test_backup_roundtrip_with_photo_and_wal(self):
         photo = self.ac_dir / "original.jpg"
         photo.write_bytes(b"photo")

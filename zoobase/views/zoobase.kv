@@ -86,6 +86,10 @@
                     text: app.t("create_farm", app.lang)
                     size_hint_x: 1
                     on_release: root.submit()
+                MDRectangleFlatButton:
+                    text: app.t("restore", app.lang)
+                    size_hint_x: 1
+                    on_release: app.import_data()
                 MDBoxLayout:
                     adaptive_height: True
                     spacing: dp(8)
@@ -196,35 +200,6 @@
                     title: app.t("tab_profile", app.lang)
                 MDScrollView:
                     FormBox:
-                        MDLabel:
-                            text: app.t("local_only", app.lang)
-                            adaptive_height: True
-                            theme_text_color: "Custom"
-                            text_color: app.muted_color
-                        MDRaisedButton:
-                            text: app.t("backup", app.lang)
-                            size_hint_x: 1
-                            on_release: app.export_data()
-                        MDRectangleFlatButton:
-                            text: app.t("restore", app.lang)
-                            size_hint_x: 1
-                            on_release: app.import_data()
-                        MDRectangleFlatButton:
-                            text: app.t("export_csv", app.lang)
-                            size_hint_x: 1
-                            on_release: app.export_data("csv")
-                        MDBoxLayout:
-                            adaptive_height: True
-                            MDLabel:
-                                text: app.t("reminders", app.lang)
-                            MDSwitch:
-                                id: reminders_switch
-                                on_active: app.set_reminders(self.active)
-                        MDLabel:
-                            text: app.t("reminders_hint", app.lang)
-                            adaptive_height: True
-                            theme_text_color: "Custom"
-                            text_color: app.muted_color
                         MDCard:
                             orientation: "vertical"
                             size_hint_y: None
@@ -328,7 +303,8 @@
                             elevation: 1
                             md_bg_color: app.surface_color
                             MDBoxLayout:
-                                adaptive_height: True
+                                size_hint_y: None
+                                height: dp(38)
                                 MDLabel:
                                     text: app.t("fertility", app.lang)
                                     theme_text_color: "Custom"
@@ -341,7 +317,8 @@
                                     theme_text_color: "Custom"
                                     text_color: app.ink_color
                             MDBoxLayout:
-                                adaptive_height: True
+                                size_hint_y: None
+                                height: dp(38)
                                 MDLabel:
                                     text: app.t("unsynced", app.lang)
                                     theme_text_color: "Custom"
@@ -353,6 +330,39 @@
                                     halign: "right"
                                     theme_text_color: "Custom"
                                     text_color: app.ink_color
+                        MDLabel:
+                            text: app.t("local_only", app.lang)
+                            adaptive_height: True
+                            theme_text_color: "Custom"
+                            text_color: app.muted_color
+                        MDRaisedButton:
+                            text: app.t("backup", app.lang)
+                            size_hint_x: 1
+                            on_release: app.export_data()
+                        MDRectangleFlatButton:
+                            text: app.t("restore", app.lang)
+                            size_hint_x: 1
+                            on_release: app.import_data()
+                        MDRectangleFlatButton:
+                            text: app.t("export_csv", app.lang)
+                            size_hint_x: 1
+                            on_release: app.export_data("csv")
+                        MDBoxLayout:
+                            size_hint_y: None
+                            height: dp(56)
+                            MDLabel:
+                                text: app.t("reminders", app.lang)
+                            MDSwitch:
+                                id: reminders_switch
+                                size_hint: None, None
+                                size: dp(54), dp(32)
+                                pos_hint: {"center_y": .5}
+                                on_active: app.set_reminders(self.active)
+                        MDLabel:
+                            text: app.t("reminders_hint", app.lang)
+                            adaptive_height: True
+                            theme_text_color: "Custom"
+                            text_color: app.muted_color
                         MDCard:
                             orientation: "vertical"
                             size_hint_y: None

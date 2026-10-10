@@ -87,8 +87,7 @@ class FarmController:
 
     def unsynced_count(self) -> int:
         try:
-            return sum(m.select().where(m.synced == False).count()  # noqa: E712
-                       for m in ALL_MODELS if m is not AppSetting)
+            return sum(m.select().count() for m in ALL_MODELS if m is not AppSetting)
         except PeeweeException:
             return 0
 

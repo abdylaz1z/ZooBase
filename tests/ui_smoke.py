@@ -20,13 +20,13 @@ class SmokeApp(ZooBaseApp):
     stage = 0
 
     def on_start(self):
-        Clock.schedule_once(self.step, 2)
+        Clock.schedule_once(self.step, 5)
 
     def step(self, _dt):
         try:
             out = Path("ui-artifacts")
             out.mkdir(exist_ok=True)
-            Window.screenshot(name=str(out / f"screen-{self.stage}.png"))
+            self.root.export_to_png(str(out / f"screen-{self.stage}.png"))
             if self.stage == 0:
                 i = self.register.ids
                 i.farm_name.text, i.region.text = "Арашан", "Чүй"
