@@ -76,7 +76,10 @@ def tap_text(fragment):
 
 def fill(fragment, value):
     tap_text(fragment)
-    adb("shell", "input", "text", value.replace(" ", "%s"))
+    # SDL consumes keyboard events asynchronously; type at a human cadence.
+    for character in value:
+        adb("shell", "input", "text", "%s" if character == " " else character)
+        time.sleep(.12)
     adb("shell", "input", "keyevent", "4")  # dismiss IME
     time.sleep(1)
 
@@ -159,7 +162,7 @@ def main():
     fill("Район", "Chui")
     fill("владельца", "CI Owner")
     fill("Телефон", "+996700123456")
-    tap_text("Создать")
+    tap_gold_button()
     shot("farm-created")
     tap_text("Овцы")
     tap_gold_button()
