@@ -4,6 +4,7 @@ import os
 from datetime import date
 
 from kivy.metrics import dp
+from kivy.clock import Clock
 from kivy.properties import BooleanProperty, ListProperty, NumericProperty, StringProperty
 from kivy.utils import platform
 from kivy.uix.widget import Widget
@@ -100,6 +101,19 @@ class HomeScreen(MDScreen):
     def __init__(self, **kw):
         super().__init__(**kw)
         self.filters = {"breed": None, "sex": None, "status": None}
+        self.page_limit = 50
+        self._search_event = Clock.create_trigger(self._search_changed, .25)
+
+    def schedule_search(self):
+        self._search_event()
+
+    def _search_changed(self, _dt):
+        self.page_limit = 50
+        self.refresh_animals()
+
+    def show_more(self):
+        self.page_limit += 50
+        self.refresh_animals()
 
     def on_pre_enter(self, *args):
         self.refresh_all()
@@ -120,7 +134,7 @@ class HomeScreen(MDScreen):
             box.add_widget(OneLineListItem(text=T("no_tasks")))
             return
         for key, color, icon in (("overdue", RED, "alert-circle"), ("today", YELLOW, "clock-alert"),
-                                 ("soon", GREEN, "calendar-clock")):
+                                 ("soon", GREEN, "calendar-clock"), ("later", GREY, "calendar")):
             if not groups[key]:
                 continue
             box.add_widget(MDLabel(text=T(key), font_style="Subtitle1", adaptive_height=True,
@@ -143,6 +157,7 @@ class HomeScreen(MDScreen):
         app().toast(res.message)
         self.refresh_tasks()
         self.refresh_animals()
+        app().refresh_reminders()
 
     # ---- животные ----
     def _filter_options(self, kind):
@@ -164,6 +179,7 @@ class HomeScreen(MDScreen):
     def pick_filter(self, kind):
         def _set(v):
             self.filters[kind] = v
+            self.page_limit = 50
             self.refresh_animals()
         choose_dialog(T(kind), [(None, T("all"))] + self._filter_options(kind), _set)
 
@@ -176,10 +192,10 @@ class HomeScreen(MDScreen):
         f = self.filters
         items = a.animals.search(a.farm, self.ids.search.text, f["breed"], f["sex"], f["status"])
         urgency = a.tasks.urgency_map(a.farm)
-        self.ids.count_label.text = f"{T('shown')}: {min(len(items), LIST_LIMIT)} / {len(items)}"
+        self.ids.count_label.text = f"{T('shown')}: {min(len(items), self.page_limit)} / {len(items)}"
         if not items:
             lst.add_widget(OneLineListItem(text=T("no_animals")))
-        for an in items[:LIST_LIMIT]:
+        for an in items[:self.page_limit]:
             if an.status in ("sold", "culled", "dead"):
                 color = GREY
             elif urgency.get(an.id) == "red":
@@ -195,6 +211,8 @@ class HomeScreen(MDScreen):
                                              on_release=lambda *_, aid=an.id: a.open_animal(aid))
             item.add_widget(IconLeftWidget(icon="sheep", theme_text_color="Custom", text_color=color))
             lst.add_widget(item)
+        if len(items) > self.page_limit:
+            lst.add_widget(OneLineListItem(text=T("show_more"), on_release=lambda *_: self.show_more()))
 
     # ---- профиль ----
     def refresh_profile(self):
@@ -217,6 +235,7 @@ class HomeScreen(MDScreen):
         self.ids.fertility_value.text = fert
         self.ids.unsynced_value.text = str(a.farms.unsynced_count())
         self.ids.dark_switch.active = a.theme_cls.theme_style == "Dark"
+        self.ids.reminders_switch.active = a.settings.get("reminders", "0") == "1"
 
 
 class FormScreen(MDScreen):
@@ -227,13 +246,13 @@ class FormScreen(MDScreen):
         a, i = app(), self.ids
         self.animal_id = animal_id
         self.state = {"breed": "arashan", "sex": "female", "status": "active",
-                      "birth_date": None, "father_id": None, "mother_id": None, "photo": ""}
+                      "birth_date": None, "arrival_date": None, "father_id": None, "mother_id": None, "photo": ""}
         an = a.animals.get(animal_id)
         self.orig_photo = an.photo if an else ""
         self.title_text = T("edit_animal") if an else T("add_animal")
         if an:
             self.state.update(breed=an.breed, sex=an.sex, status=an.status, birth_date=an.birth_date,
-                              father_id=an.father_id, mother_id=an.mother_id, photo=an.photo)
+                              arrival_date=an.arrival_date, father_id=an.father_id, mother_id=an.mother_id, photo=an.photo)
         i.tag.text, i.name.text = (an.tag, an.name) if an else ("", "")
         i.chip.text, i.notes.text = (an.chip, an.notes) if an else ("", "")
         self.update_buttons()
@@ -247,6 +266,7 @@ class FormScreen(MDScreen):
         i.breed_btn.text = f"{T('breed')}: {T('breed_' + s['breed'])}"
         i.sex_btn.text = f"{T('sex')}: {T(s['sex'])}"
         i.birth_btn.text = f"{T('birth_date')}: {fmt(s['birth_date'])}"
+        i.arrival_btn.text = f"{T('arrival_date')}: {fmt(s['arrival_date'])}"
         i.status_btn.text = f"{T('status')}: {T('st_' + s['status'])}"
         i.father_btn.text = f"{T('father')}: {self._parent_text(s['father_id'])}"
         i.mother_btn.text = f"{T('mother')}: {self._parent_text(s['mother_id'])}"
@@ -267,12 +287,8 @@ class FormScreen(MDScreen):
         """Выбор фото из галереи/папки через файловый менеджер KivyMD."""
         try:
             if platform == "android":
-                try:
-                    from android.permissions import Permission, request_permissions
-                    request_permissions([Permission.READ_EXTERNAL_STORAGE])
-                except ImportError:
-                    pass
-                start = "/storage/emulated/0"
+                app().documents.open("image/*", self._accept_photo)
+                return
             else:
                 start = os.path.expanduser("~")
             self.fm = MDFileManager(exit_manager=self._close_fm, select_path=self._on_photo,
@@ -287,6 +303,12 @@ class FormScreen(MDScreen):
 
     def _on_photo(self, path):
         self.fm.close()
+        self._accept_photo(path)
+
+    def _accept_photo(self, path):
+        if not path:
+            app().toast("err_photo")
+            return
         res = app().animals.store_photo(path)
         if not res.ok:
             app().toast(res.message)
@@ -317,6 +339,9 @@ class FormScreen(MDScreen):
     def pick_birth(self):
         pick_date(lambda d: self._set("birth_date", d), self.state["birth_date"], max_date=date.today())
 
+    def pick_arrival(self):
+        pick_date(lambda d: self._set("arrival_date", d), self.state["arrival_date"], max_date=date.today())
+
     def pick_parent(self, which):
         a = app()
         sex = "male" if which == "father" else "female"
@@ -330,6 +355,7 @@ class FormScreen(MDScreen):
         res = a.animals.save(a.farm, self.animal_id, data)
         a.toast(res.message)
         if res.ok:
+            self.orig_photo = res.data.photo
             a.back()
 
 
@@ -444,6 +470,7 @@ class DetailScreen(MDScreen):
         # --- о животном ---
         about = SoftCard()
         about.add_widget(info(T("birth_date"), fmt(an.birth_date)))
+        about.add_widget(info(T("arrival_date"), fmt(an.arrival_date)))
         about.add_widget(info(T("chip"), an.chip or T("not_set")))
         if an.notes:
             about.add_widget(info(T("notes"), an.notes))
@@ -467,6 +494,14 @@ class DetailScreen(MDScreen):
                           tint=list(a.muted_color))
             row.bind(on_release=lambda *_, pid=anc.id: self.push(pid))
             box.add_widget(row)
+
+        children = a.animals.offspring(an)
+        if children:
+            box.add_widget(SectionLabel(text=T("offspring_short")))
+            for child in children:
+                row = LinkRow(icon="sheep", title=label_of(child), caption=fmt(child.birth_date), tint=tint)
+                row.bind(on_release=lambda *_, cid=child.id: self.push(cid))
+                box.add_widget(row)
 
         # --- репродукция (только матки) ---
         if an.sex == "female":
@@ -634,7 +669,7 @@ class TaskScreen(MDScreen):
 
     def pick_animal(self):
         a = app()
-        opts = [(None, T("not_set"))] + [(x.id, label_of(x)) for x in a.animals.search(a.farm)[:LIST_LIMIT]]
+        opts = [(None, T("not_set"))] + [(x.id, label_of(x)) for x in a.animals.search(a.farm)]
         choose_dialog(T("task_animal"), opts, lambda v: self._set("animal_id", v))
 
     def save(self):

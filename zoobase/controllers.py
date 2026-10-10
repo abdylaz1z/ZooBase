@@ -144,10 +144,11 @@ class AnimalController:
     def remove_photo(self, path: str) -> None:
         """Удаляет файл фото, только если он лежит в папке приложения."""
         try:
-            root = os.path.abspath(self.photo_dir) if self.photo_dir else None
-            if path and root and os.path.abspath(path).startswith(root) and os.path.exists(path):
+            root = os.path.realpath(self.photo_dir) if self.photo_dir else None
+            target = os.path.realpath(path) if path else None
+            if target and root and os.path.commonpath([root, target]) == root and os.path.isfile(target):
                 os.remove(path)
-        except OSError:
+        except (OSError, ValueError):
             log.exception("remove photo")
 
     def parents(self, animal):
@@ -193,15 +194,47 @@ class AnimalController:
         if d.get("breed") not in BREEDS or d.get("sex") not in SEXES or d.get("status") not in STATUSES:
             return "err_choice"
         bd = d.get("birth_date")
-        if bd and bd > date.today():
+        arrival = d.get("arrival_date")
+        if (bd and bd > date.today()) or (arrival and arrival > date.today()):
             return "err_future_date"
+        if bd and arrival and arrival < bd:
+            return "err_arrival_date"
+        if d.get("status") == "pregnant" and d.get("sex") != "female":
+            return "err_repro_sex"
+        if animal_id:
+            existing = self.get(animal_id)
+            if not existing or existing.farm_id != farm.id:
+                return "err_not_found"
+            children = self.offspring(existing)
+            for child in children:
+                expected = "male" if child.father_id == animal_id else "female"
+                if d["sex"] != expected:
+                    return "err_parent_sex"
+                if bd and child.birth_date and bd >= child.birth_date:
+                    return "err_parent_age"
         for fid, sex in ((d.get("father_id"), "male"), (d.get("mother_id"), "female")):
             if fid:
                 if animal_id and fid == animal_id:
                     return "err_self_parent"
                 parent = self.get(fid)
+                if parent and parent.farm_id != farm.id:
+                    return "err_parent_farm"
                 if not parent or parent.sex != sex:
                     return "err_parent_sex"
+                if bd and parent.birth_date and parent.birth_date >= bd:
+                    return "err_parent_age"
+                # Walk the entire ancestry, not just the three displayed generations.
+                pending, seen = [parent.id], set()
+                while pending:
+                    pid = pending.pop()
+                    if pid == animal_id:
+                        return "err_parent_cycle"
+                    if pid in seen:
+                        continue
+                    seen.add(pid)
+                    ancestor = self.get(pid)
+                    if ancestor:
+                        pending.extend(p for p in (ancestor.father_id, ancestor.mother_id) if p)
         same_tag = Animal.select().where(Animal.farm == farm, Animal.tag == tag)
         if animal_id:
             same_tag = same_tag.where(Animal.id != animal_id)
@@ -223,9 +256,10 @@ class AnimalController:
                 return Result(False, err)
             fields = dict(tag=d["tag"].strip(), name=(d.get("name") or "").strip(),
                           chip=(d.get("chip") or "").strip(), breed=d["breed"], sex=d["sex"],
-                          birth_date=d.get("birth_date"), status=d["status"],
+                          birth_date=d.get("birth_date"), arrival_date=d.get("arrival_date"), status=d["status"],
                           father=d.get("father_id"), mother=d.get("mother_id"),
                           notes=(d.get("notes") or "").strip(), photo=d.get("photo") or "")
+            old_photo = ""
             with db.atomic():
                 if animal_id:
                     animal = Animal.get_or_none(Animal.id == animal_id)
@@ -235,10 +269,10 @@ class AnimalController:
                     for k, v in fields.items():
                         setattr(animal, k, v)
                     animal.save()
-                    if old_photo and old_photo != fields["photo"]:
-                        self.remove_photo(old_photo)
                 else:
                     animal = Animal.create(farm=farm, **fields)
+            if old_photo and old_photo != fields["photo"]:
+                self.remove_photo(old_photo)
             return Result(True, "saved", animal)
         except IntegrityError:
             log.exception("animal integrity")
@@ -283,6 +317,10 @@ class HealthController:
             if len(title) > 120 or len(d.get("dose") or "") > 60 or len(d.get("performer") or "") > 80:
                 return Result(False, "err_too_long")
             done_date, next_date = d.get("done_date") or date.today(), d.get("next_date")
+            if done_date > date.today():
+                return Result(False, "err_future_date")
+            if animal.birth_date and done_date < animal.birth_date:
+                return Result(False, "err_before_birth")
             if next_date and next_date < done_date:
                 return Result(False, "err_date_order")
             with db.atomic():
@@ -302,14 +340,14 @@ class TaskController:
     def grouped(self, farm) -> dict:
         """{'overdue': [...], 'today': [...], 'soon': [...]} — только невыполненные задачи."""
         today = date.today()
-        groups = {"overdue": [], "today": [], "soon": []}
+        groups = {"overdue": [], "today": [], "soon": [], "later": []}
         try:
             q = (Task.select(Task, Animal).join(Animal, JOIN.LEFT_OUTER)
-                 .where(Task.farm == farm, Task.done == False,  # noqa: E712
-                        Task.due_date <= today + timedelta(days=SOON_DAYS))
+                 .where(Task.farm == farm, Task.done == False)  # noqa: E712
                  .order_by(Task.due_date, Task.id))
             for t in q:
-                key = "overdue" if t.due_date < today else "today" if t.due_date == today else "soon"
+                key = ("overdue" if t.due_date < today else "today" if t.due_date == today
+                       else "soon" if t.due_date <= today + timedelta(days=SOON_DAYS) else "later")
                 groups[key].append(t)
         except PeeweeException:
             log.exception("tasks grouped")
@@ -407,9 +445,19 @@ class ReproController:
             ev_date = d.get("event_date") or date.today()
             if ev_date > date.today():
                 return Result(False, "err_future_date")
+            if animal.birth_date and ev_date < animal.birth_date:
+                return Result(False, "err_before_birth")
+            latest = (ReproEvent.select().where(ReproEvent.animal == animal)
+                      .order_by(ReproEvent.event_date.desc()).first())
+            if latest and ev_date < latest.event_date:
+                return Result(False, "err_repro_order")
+            if animal.status not in LIVE_STATUSES:
+                return Result(False, "err_inactive")
             partner_id = d.get("partner_id")
             if partner_id:
                 partner = Animal.get_or_none(Animal.id == partner_id)
+                if partner and partner.farm_id != animal.farm_id:
+                    return Result(False, "err_parent_farm")
                 if not partner or partner.sex != "male":
                     return Result(False, "err_parent_sex")
             males = females = 0
@@ -435,7 +483,7 @@ class ReproController:
                         animal.status = "pregnant"
                         animal.save()
                 else:
-                    Task.update(done=True, done_at=datetime.now(), synced=False).where(pending).execute()
+                    Task.update(done=True, done_at=datetime.now(), updated_at=datetime.now(), synced=False).where(pending).execute()
                     if animal.status == "pregnant":
                         animal.status = "active"
                         animal.save()

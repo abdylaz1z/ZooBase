@@ -2,11 +2,13 @@ name: Build APK
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, 'improve/**']
+permissions:
+  contents: read
 jobs:
   build:
     runs-on: ubuntu-22.04
-    timeout-minutes: 90
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -21,7 +23,13 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y git zip unzip autoconf automake libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev ccache
       - name: Install Buildozer
-        run: pip install --upgrade buildozer "cython<3.1" virtualenv
+        run: pip install buildozer==1.6.0 "cython==0.29.37" virtualenv
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.buildozer
+            .buildozer
+          key: android-v2-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
       - name: Build APK
         run: buildozer -v android debug
       - uses: actions/upload-artifact@v4
@@ -29,4 +37,4 @@ jobs:
         with:
           name: zoobase-apk
           path: bin/*.apk
-          if-no-files-found: warn
+          if-no-files-found: error
