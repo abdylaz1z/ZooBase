@@ -26,7 +26,7 @@ class Documents:
         intent.addCategory(Intent.CATEGORY_OPENABLE)
         intent.setType(mime)
         if saving:
-            intent.putExtra(Intent.EXTRA_TITLE, os.path.basename(path))
+            autoclass("kg.zoobase.platform.FileBridge").setDocumentTitle(intent, os.path.basename(path))
         self.pending = (saving, path, callback)
 
         @run_on_ui_thread

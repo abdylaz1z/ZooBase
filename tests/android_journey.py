@@ -114,6 +114,10 @@ def save_document():
         raw = adb("shell", "cat", "/sdcard/window.xml")
         (OUT / "document-picker.xml").write_bytes(raw)
         root = ET.fromstring(raw)
+        title_nodes = [n for n in root.iter("node") if n.attrib.get("resource-id") == "android:id/title"
+                       and n.attrib.get("class") == "android.widget.EditText"]
+        if title_nodes:
+            assert title_nodes[0].attrib.get("text", "").startswith("ZooBase-"), "Backup filename missing from native picker"
         for node in root.iter("node"):
             if node.attrib.get("text", "").casefold() in ("save", "сохранить"):
                 bounds = list(map(int, re.findall(r"\d+", node.attrib["bounds"])))
