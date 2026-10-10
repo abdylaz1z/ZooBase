@@ -21,7 +21,6 @@ android.ndk = 28c
 android.ndk_api = 26
 android.archs = arm64-v8a, armeabi-v7a, x86_64
 android.add_src = android_src
-android.extra_manifest_application_arguments = android_src/manifest.xml
 android.allow_backup = False
 p4a.branch = v2026.05.09
 p4a.source_dir = .buildozer/p4a
