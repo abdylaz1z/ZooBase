@@ -145,7 +145,7 @@ def enable_reminders():
             break
     alarms = adb("shell", "dumpsys", "alarm")
     (OUT / "alarms.txt").write_bytes(alarms)
-    assert PACKAGE.encode() in alarms, "Local reminder alarm was not scheduled"
+    assert re.search(rb"RTC_WAKEUP[^\n]*" + re.escape(PACKAGE.encode()), alarms), "Local reminder alarm was not scheduled"
     shot("reminders-enabled")
 
 
@@ -166,6 +166,7 @@ def main():
     fill("Телефон", "+996700123456")
     tap_gold_button()
     shot("farm-created")
+    print("Farm registration completed", flush=True)
     tap_text("Овцы")
     tap_gold_button()
     fill("Инвентарный", "CI-001")
@@ -179,6 +180,7 @@ def main():
     tap_gold_button()
     time.sleep(3)  # the saved snackbar temporarily covers the bottom navigation
     shot("animal-saved")
+    print("Animal form saved", flush=True)
     tap_text("Хозяйство")
     tap_gold_button()
     shot("document-picker")
@@ -193,7 +195,9 @@ def main():
     with sqlite3.connect(OUT / "backup.db") as conn:
         assert conn.execute("SELECT name FROM farm").fetchone()[0] == "CI Farm"
         assert conn.execute("SELECT tag FROM animal").fetchone()[0] == "CI-001"
+    print("Native exported backup contents verified", flush=True)
     enable_reminders()
+    print("Daily reminder alarm verified", flush=True)
     adb("shell", "am", "force-stop", PACKAGE)
     adb("shell", "monkey", "-p", PACKAGE, "-c", "android.intent.category.LAUNCHER", "1")
     time.sleep(15)
