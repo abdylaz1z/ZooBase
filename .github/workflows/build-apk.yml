@@ -3,6 +3,7 @@ on:
   workflow_dispatch:
   push:
     branches: [main, 'improve/**']
+    paths: ['main.py', 'zoobase/**', 'android_src/**', 'buildozer.spec', 'requirements.txt']
 permissions:
   contents: read
 jobs:
