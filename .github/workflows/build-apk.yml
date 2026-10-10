@@ -2,7 +2,7 @@ name: Build APK
 on:
   workflow_dispatch:
   push:
-    branches: [main, 'improve/**']
+    branches: [main]
     paths: ['main.py', 'zoobase/**', 'android_src/**', 'buildozer.spec', 'requirements.txt']
 permissions:
   contents: read
@@ -32,6 +32,8 @@ jobs:
             .buildozer
           key: android-v2-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
       - name: Build APK
+        env:
+          NO_SQLITE: '1'
         run: buildozer -v android debug
       - uses: actions/upload-artifact@v4
         if: always()
@@ -39,3 +41,30 @@ jobs:
           name: zoobase-apk
           path: bin/*.apk
           if-no-files-found: error
+  android-smoke:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: zoobase-apk
+          path: apk
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_2
+          disable-animations: true
+          script: bash tests/android_smoke.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: android-verification
+          path: android-artifacts

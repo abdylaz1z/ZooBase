@@ -6,6 +6,7 @@ import sqlite3
 import tempfile
 import uuid
 import zipfile
+from contextlib import closing
 from datetime import datetime
 from pathlib import Path
 
@@ -21,8 +22,11 @@ def create_backup(destination):
     destination.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory() as temp:
         snapshot = Path(temp) / "zoobase.db"
-        with sqlite3.connect(snapshot) as conn:
+        with closing(sqlite3.connect(snapshot)) as conn:
             db.connection().backup(conn)
+            # backup() also carries over WAL journal mode. Make the archive
+            # self-contained before rewriting portable photo references.
+            conn.execute("PRAGMA journal_mode=DELETE")
             photos = conn.execute("SELECT id, photo FROM animal").fetchall()
             with zipfile.ZipFile(destination, "w", zipfile.ZIP_DEFLATED) as archive:
                 for animal_id, photo in photos:
@@ -57,7 +61,7 @@ def restore_backup(source, photo_dir):
                 raise ValueError("Unsupported backup")
             snapshot = Path(temp) / "restore.db"
             snapshot.write_bytes(archive.read("zoobase.db"))
-            with sqlite3.connect(snapshot) as conn:
+            with closing(sqlite3.connect(snapshot)) as conn:
                 conn.execute("PRAGMA trusted_schema=OFF")
                 if conn.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
                     raise ValueError("Damaged database")
