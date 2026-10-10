@@ -180,7 +180,7 @@ def main():
     time.sleep(3)  # the saved snackbar temporarily covers the bottom navigation
     shot("animal-saved")
     tap_text("Хозяйство")
-    tap_text("резервную")
+    tap_gold_button()
     shot("document-picker")
     save_document()
     shot("backup-exported")
