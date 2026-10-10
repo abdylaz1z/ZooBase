@@ -174,8 +174,9 @@ def main():
     from PIL import Image
     image = Image.open(shot("animal-form"))
     for _ in range(3):
-        adb("shell", "input", "swipe", str(image.width // 2), str(int(image.height * .82)),
-            str(image.width // 2), str(int(image.height * .25)), "500")
+        # Use the scroll-view gutter so a drag cannot activate a form selector.
+        adb("shell", "input", "swipe", str(int(image.width * .975)), str(int(image.height * .82)),
+            str(int(image.width * .975)), str(int(image.height * .25)), "700")
         time.sleep(.5)
     tap_gold_button()
     time.sleep(3)  # the saved snackbar temporarily covers the bottom navigation
