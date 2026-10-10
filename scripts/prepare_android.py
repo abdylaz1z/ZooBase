@@ -45,5 +45,9 @@ for template in templates:
     if 'kg.zoobase.platform.ReminderReceiver' not in manifest:
         if '</application>' not in manifest:
             raise SystemExit(f"Application element missing: {template}")
-        template.write_text(manifest.replace('</application>', receiver + '\n    </application>'), encoding="utf-8")
+        manifest = manifest.replace('</application>', receiver + '\n    </application>')
+    # The SDL template hardcodes an activity theme which overrides app theme.
+    manifest = manifest.replace('android:theme="@style/KivySupportCutout"',
+                                'android:theme="{{args.android_apptheme}}"')
+    template.write_text(manifest, encoding="utf-8")
 print("Reminder receiver registered as an application child")
