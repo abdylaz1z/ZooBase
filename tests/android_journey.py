@@ -97,6 +97,31 @@ def save_document():
     raise AssertionError("Native Save button not found")
 
 
+def enable_reminders():
+    from PIL import Image
+    image = Image.open(shot("settings"))
+    adb("shell", "input", "swipe", str(image.width // 2), str(int(image.height * .82)),
+        str(image.width // 2), str(int(image.height * .50)), "500")
+    time.sleep(1)
+    rows = [r for r in words() if "напоминания" in r["text"].casefold()]
+    assert rows, "Reminder setting not visible"
+    y = int(rows[0]["top"]) + int(rows[0]["height"]) // 2
+    adb("shell", "input", "tap", str(int(image.width * .895)), str(y))
+    time.sleep(2)
+    adb("shell", "uiautomator", "dump", "/sdcard/window.xml")
+    root = ET.fromstring(adb("shell", "cat", "/sdcard/window.xml"))
+    for node in root.iter("node"):
+        if node.attrib.get("text", "").casefold() in ("allow", "разрешить"):
+            box = list(map(int, re.findall(r"\d+", node.attrib["bounds"])))
+            adb("shell", "input", "tap", str((box[0] + box[2]) // 2), str((box[1] + box[3]) // 2))
+            time.sleep(2)
+            break
+    alarms = adb("shell", "dumpsys", "alarm")
+    (OUT / "alarms.txt").write_bytes(alarms)
+    assert PACKAGE.encode() in alarms, "Local reminder alarm was not scheduled"
+    shot("reminders-enabled")
+
+
 def main():
     assert adb("shell", "getprop", "ro.kernel.qemu").strip() == b"1", "Test emulator required"
     adb("shell", "pm", "clear", PACKAGE)
@@ -138,6 +163,7 @@ def main():
     with sqlite3.connect(OUT / "backup.db") as conn:
         assert conn.execute("SELECT name FROM farm").fetchone()[0] == "CI Farm"
         assert conn.execute("SELECT tag FROM animal").fetchone()[0] == "CI-001"
+    enable_reminders()
     adb("shell", "am", "force-stop", PACKAGE)
     adb("shell", "monkey", "-p", PACKAGE, "-c", "android.intent.category.LAUNCHER", "1")
     time.sleep(15)
@@ -151,7 +177,7 @@ def main():
             (OUT / ("persisted.db" + suffix)).write_bytes(data)
     with sqlite3.connect(OUT / "persisted.db") as conn:
         assert conn.execute("SELECT tag FROM animal").fetchone()[0] == "CI-001"
-    (OUT / "result.txt").write_text("PASS: offline registration, animal creation, native SAF backup, persisted restart", encoding="utf-8")
+    (OUT / "result.txt").write_text("PASS: offline registration, animal creation, native SAF backup, reminder alarm scheduled, persisted restart", encoding="utf-8")
 
 
 try:
