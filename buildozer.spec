@@ -1,5 +1,8 @@
 [app]
 title = ZooBase
+icon.filename = assets/icon.png
+presplash.filename = assets/icon.png
+android.presplash_color = #143e2e
 package.name = zoobase
 package.domain = kg.zoobase
 source.dir = .

@@ -31,6 +31,7 @@ jobs:
             ~/.buildozer
             .buildozer
           key: android-v2-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
+          restore-keys: android-v2-${{ runner.os }}-
       - name: Build APK
         env:
           NO_SQLITE: '1'
