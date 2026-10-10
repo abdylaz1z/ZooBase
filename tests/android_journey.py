@@ -31,10 +31,16 @@ def shot(label):
 
 
 def words():
+    from PIL import Image
     path = shot("screen")
-    output = subprocess.run(["tesseract", str(path), "stdout", "-l", "rus+eng", "--psm", "11", "tsv"],
-                            check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).stdout.decode()
-    return [r for r in csv.DictReader(io.StringIO(output), delimiter="\t") if r.get("text", "").strip()]
+    high_contrast = OUT / "ocr-input.png"
+    Image.open(path).convert("L").point(lambda p: 0 if p < 205 else 255).save(high_contrast)
+    records = []
+    for source, mode in ((path, "11"), (high_contrast, "6")):
+        output = subprocess.run(["tesseract", str(source), "stdout", "-l", "rus+eng", "--psm", mode, "tsv"],
+                                check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).stdout.decode()
+        records.extend(r for r in csv.DictReader(io.StringIO(output), delimiter="\t") if r.get("text", "").strip())
+    return records
 
 
 def tap_text(fragment):

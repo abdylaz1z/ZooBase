@@ -3,6 +3,12 @@ import logging
 import os
 from datetime import datetime
 
+# Android uses our launcher icon. Avoid Kivy copying its desktop logos with
+# shutil.copytree/copy2, whose metadata copying is rejected by Android SELinux.
+if "ANDROID_APP_PATH" in os.environ:
+    kivy_home = os.environ.get("KIVY_HOME", os.path.join(os.environ["ANDROID_APP_PATH"], ".kivy"))
+    os.makedirs(os.path.join(kivy_home, "icon"), exist_ok=True)
+
 from kivy.config import Config
 
 Config.set("kivy", "exit_on_escape", "0")

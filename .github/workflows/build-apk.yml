@@ -52,6 +52,11 @@ jobs:
           if [ -f ~/.android/debug.keystore ]; then
             cp ~/.android/debug.keystore .buildozer/pilot-debug.keystore
           fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: zoobase-apk
+          path: bin/*.apk
+          if-no-files-found: error
       - uses: actions/cache/save@v4
         if: always()
         with:
@@ -59,12 +64,6 @@ jobs:
             ~/.buildozer
             .buildozer
           key: ${{ steps.build-cache.outputs.cache-primary-key }}
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: zoobase-apk
-          path: bin/*.apk
-          if-no-files-found: error
   android-smoke:
     needs: build
     runs-on: ubuntu-latest
