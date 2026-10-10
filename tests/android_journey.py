@@ -48,6 +48,24 @@ def tap_text(fragment):
     needle = fragment.casefold()
     matches = [r for r in records if needle in r["text"].casefold()]
     if not matches:
+        # Tesseract suppresses text enclosed by Kivy's outlined input fields.
+        # Scan overlapping interior strips without their rectangular borders.
+        from PIL import Image
+        screen = Image.open(shot("field-scan")).convert("L")
+        left = int(screen.width * .07)
+        for top in range(0, screen.height - 64, 64):
+            path = OUT / "ocr-strip.png"
+            screen.crop((left, top, int(screen.width * .93), min(top + 128, screen.height))).save(path)
+            output = subprocess.run(["tesseract", str(path), "stdout", "-l", "rus+eng", "--psm", "6", "tsv"],
+                                    check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).stdout.decode()
+            for row in csv.DictReader(io.StringIO(output), delimiter="\t"):
+                if needle in row.get("text", "").casefold():
+                    row["left"] = str(int(row["left"]) + left)
+                    row["top"] = str(int(row["top"]) + top)
+                    matches.append(row)
+            if matches:
+                break
+    if not matches:
         raise AssertionError(f"Visible text {fragment!r} not found: {[r['text'] for r in records]}")
     row = matches[-1]
     x = int(row["left"]) + int(row["width"]) // 2
