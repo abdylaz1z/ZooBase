@@ -148,6 +148,7 @@ def main():
             str(image.width // 2), str(int(image.height * .25)), "500")
         time.sleep(.5)
     tap_text("Сохранить")
+    time.sleep(3)  # the saved snackbar temporarily covers the bottom navigation
     shot("animal-saved")
     tap_text("Хозяйство")
     tap_text("резервную")
