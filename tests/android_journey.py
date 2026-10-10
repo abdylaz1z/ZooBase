@@ -131,9 +131,9 @@ def save_document():
 def enable_reminders():
     from PIL import Image
     image = Image.open(shot("settings"))
-    adb("shell", "input", "swipe", str(image.width // 2), str(int(image.height * .82)),
-        str(image.width // 2), str(int(image.height * .50)), "500")
-    time.sleep(1)
+    adb("shell", "input", "swipe", str(int(image.width * .975)), str(int(image.height * .82)),
+        str(int(image.width * .975)), str(int(image.height * .50)), "700")
+    time.sleep(3)
     rows = [r for r in words() if "напоминания" in r["text"].casefold()]
     assert rows, "Reminder setting not visible"
     y = int(rows[0]["top"]) + int(rows[0]["height"]) // 2
