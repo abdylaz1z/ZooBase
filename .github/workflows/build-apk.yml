@@ -31,24 +31,33 @@ jobs:
           path: |
             ~/.buildozer
             .buildozer
-            ~/.android/debug.keystore
           key: android-v3-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}-${{ github.run_id }}
           restore-keys: |
             android-v3-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}-
             android-v3-${{ runner.os }}-
       - name: Prepare pinned Android toolchain
-        run: python scripts/prepare_android.py
+        run: |
+          python scripts/prepare_android.py
+          if [ -f .buildozer/pilot-debug.keystore ]; then
+            mkdir -p ~/.android
+            cp .buildozer/pilot-debug.keystore ~/.android/debug.keystore
+          fi
       - name: Build APK
         env:
           NO_SQLITE: '1'
         run: buildozer -v android debug
+      - name: Retain pilot signing key
+        if: always()
+        run: |
+          if [ -f ~/.android/debug.keystore ]; then
+            cp ~/.android/debug.keystore .buildozer/pilot-debug.keystore
+          fi
       - uses: actions/cache/save@v4
         if: always()
         with:
           path: |
             ~/.buildozer
             .buildozer
-            ~/.android/debug.keystore
           key: ${{ steps.build-cache.outputs.cache-primary-key }}
       - uses: actions/upload-artifact@v4
         if: always()
