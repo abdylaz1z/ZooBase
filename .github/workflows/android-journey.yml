@@ -1,0 +1,49 @@
+name: Android user journey
+on:
+  workflow_dispatch:
+    inputs:
+      build_run:
+        description: Build APK run ID containing zoobase-apk
+        required: true
+  push:
+    paths: ['.github/workflows/android-journey.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  journey:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/download-artifact@v4
+        with:
+          name: zoobase-apk
+          path: apk
+          run-id: ${{ inputs.build_run }}
+          github-token: ${{ github.token }}
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y tesseract-ocr tesseract-ocr-rus
+          pip install pillow
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_2
+          disable-animations: true
+          script: |
+            adb install -r apk/*.apk
+            python tests/android_journey.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: android-journey
+          path: android-journey
