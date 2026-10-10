@@ -354,6 +354,8 @@
                                 text: app.t("reminders", app.lang)
                             MDCheckbox:
                                 id: reminders_switch
+                                color_active: app.action_color
+                                color_inactive: app.muted_color
                                 size_hint: None, None
                                 size: dp(48), dp(48)
                                 pos_hint: {"center_y": .5}
@@ -410,6 +412,8 @@
                                 text_color: app.ink_color
                             MDCheckbox:
                                 id: dark_switch
+                                color_active: app.action_color
+                                color_inactive: app.muted_color
                                 size_hint: None, None
                                 size: dp(48), dp(48)
                                 pos_hint: {"center_y": .5}
