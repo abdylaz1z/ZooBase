@@ -138,7 +138,7 @@ class HomeScreen(MDScreen):
             if not groups[key]:
                 continue
             box.add_widget(MDLabel(text=T(key), font_style="Subtitle1", adaptive_height=True,
-                                   theme_text_color="Custom", text_color=a.brand_color,
+                                   theme_text_color="Custom", text_color=a.action_color,
                                    padding=(dp(16), dp(12))))
             for t in groups[key]:
                 who = label_of(t.animal) if t.animal_id else ""
@@ -424,7 +424,7 @@ class DetailScreen(MDScreen):
         if not an:
             return
         self.ids.toolbar.title = label_of(an)
-        tint = list(a.brand_color)
+        tint = list(a.action_color)
 
         def muted_label(text):
             return MDLabel(text=text, adaptive_height=True, padding=(dp(6), dp(2)), font_style="Body2",

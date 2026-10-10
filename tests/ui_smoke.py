@@ -8,7 +8,7 @@ from pathlib import Path
 os.environ["KIVY_NO_ARGS"] = "1"
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from kivy.config import Config
-Config.set("graphics", "width", "390")
+Config.set("graphics", "width", "392")
 Config.set("graphics", "height", "844")
 from kivy.clock import Clock
 from kivy.core.window import Window

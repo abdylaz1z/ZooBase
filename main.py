@@ -36,6 +36,7 @@ class ZooBaseApp(MDApp):
     canvas_color = ListProperty([0.96, 0.97, 0.94, 1])
     surface_color = ListProperty([1, 1, 1, 1])
     brand_color = ListProperty([0.08, 0.31, 0.22, 1])
+    action_color = ListProperty([0.08, 0.31, 0.22, 1])
     brand_text_color = ListProperty([1, 1, 1, 1])
     accent_color = ListProperty([0.96, 0.69, 0.19, 1])
     accent_text_color = ListProperty([0.20, 0.14, 0.05, 1])
@@ -182,6 +183,7 @@ class ZooBaseApp(MDApp):
     def _set_theme_colors(self, dark):
         """Keep neutral surfaces dominant in both themes; green and amber stay intentional."""
         if dark:
+            self.action_color = [0.55, 0.82, 0.64, 1]
             self.canvas_color = [0.055, 0.085, 0.07, 1]
             self.surface_color = [0.10, 0.145, 0.12, 1]
             self.brand_color = [0.09, 0.32, 0.23, 1]
@@ -190,6 +192,7 @@ class ZooBaseApp(MDApp):
             self.ink_color = [0.94, 0.96, 0.93, 1]
             self.muted_color = [0.68, 0.75, 0.70, 1]
         else:
+            self.action_color = [0.08, 0.31, 0.22, 1]
             self.canvas_color = [0.96, 0.97, 0.94, 1]
             self.surface_color = [1, 1, 1, 1]
             self.brand_color = [0.08, 0.31, 0.22, 1]
