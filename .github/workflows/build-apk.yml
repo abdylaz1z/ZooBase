@@ -35,6 +35,9 @@ jobs:
           key: android-v3-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}-${{ github.run_id }}
           restore-keys: |
             android-v3-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}-
+            android-v3-${{ runner.os }}-
+      - name: Prepare pinned Android toolchain
+        run: python scripts/prepare_android.py
       - name: Build APK
         env:
           NO_SQLITE: '1'
