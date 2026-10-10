@@ -58,7 +58,7 @@ GitHub Actions сохраняет снимки экранов в артефак�
 
 Сборка Kivy для Android выполняется в Linux. Рабочий workflow: `.github/workflows/build-apk.yml`.
 Его можно запустить вручную через Actions → Build APK → Run workflow с нужной веткой.
-Используются Java 17, Buildozer 1.6.0, python-for-android v2026.05.09, NDK 28c,
+Используются Python 3.11.17, Kivy 2.3.1, Java 17, Buildozer 1.6.0, python-for-android v2026.05.09, NDK 28c,
 Android target API 35 / minimum API 26 и архитектуры arm64-v8a, armeabi-v7a, x86_64.
 
 ```sh

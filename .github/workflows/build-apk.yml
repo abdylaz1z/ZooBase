@@ -25,17 +25,26 @@ jobs:
           sudo apt-get install -y git zip unzip autoconf automake libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev ccache
       - name: Install Buildozer
         run: pip install buildozer==1.6.0 "cython==0.29.37" virtualenv
-      - uses: actions/cache@v4
+      - uses: actions/cache/restore@v4
+        id: build-cache
         with:
           path: |
             ~/.buildozer
             .buildozer
-          key: android-v2-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
-          restore-keys: android-v2-${{ runner.os }}-
+          key: android-v3-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}-${{ github.run_id }}
+          restore-keys: |
+            android-v3-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}-
       - name: Build APK
         env:
           NO_SQLITE: '1'
         run: buildozer -v android debug
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: |
+            ~/.buildozer
+            .buildozer
+          key: ${{ steps.build-cache.outputs.cache-primary-key }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
