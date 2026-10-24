@@ -2,3 +2,5 @@ kivy==2.3.0
 kivymd==1.2.0
 peewee>=3.17
 pillow
+fpdf2>=2.8,<3
+plyer

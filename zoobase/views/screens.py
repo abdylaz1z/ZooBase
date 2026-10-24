@@ -1,8 +1,10 @@
 """View: экраны KivyMD. Вся логика данных — через контроллеры приложения (app.animals, app.tasks, ...)."""
 import logging
 import os
+import uuid
 from datetime import date
 
+from kivy.clock import Clock
 from kivy.metrics import dp
 from kivy.properties import BooleanProperty, ListProperty, NumericProperty, StringProperty
 from kivy.utils import platform
@@ -10,7 +12,7 @@ from kivy.uix.widget import Widget
 from kivymd.app import MDApp
 from kivy.uix.image import Image
 from kivymd.uix.boxlayout import MDBoxLayout
-from kivymd.uix.button import MDFlatButton
+from kivymd.uix.button import MDFlatButton, MDRaisedButton
 from kivymd.uix.card import MDCard
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.filemanager import MDFileManager
@@ -21,9 +23,10 @@ from kivymd.uix.scrollview import MDScrollView
 from kivymd.uix.pickers import MDDatePicker
 from kivymd.uix.screen import MDScreen
 
-from ..config import (BREEDS, DATE_FMT, GREEN, GREY, HEALTH_KINDS, LIST_LIMIT, RED, SEXES,
+from ..config import (BREEDS, DATE_FMT, FARM_NAME, GREEN, GREY, HEALTH_KINDS, LIST_LIMIT, RED, SEXES,
                       STATUSES, YELLOW)
 from ..controllers import age_parts
+from ..passport import create_animal_passport, downloads_directory, publish_to_android_downloads
 
 log = logging.getLogger("zoobase")
 
@@ -201,6 +204,10 @@ class HomeScreen(MDScreen):
         a = app()
         if not a.farm:
             return
+        if a.farm.name != FARM_NAME:
+            res = a.farms.rename(a.farm, FARM_NAME)
+            if not res.ok:
+                a.toast(res.message)
         owner = a.farms.owner(a.farm)
         st = a.animals.stats(a.farm)
         fert = a.repro.fertility(a.farm)
@@ -222,10 +229,15 @@ class HomeScreen(MDScreen):
 class FormScreen(MDScreen):
     title_text = StringProperty("")
     has_photo = BooleanProperty(False)
+    is_new = BooleanProperty(True)
 
     def load(self, animal_id=None):
+        if hasattr(self, "state"):
+            self._drop_new_photo()
         a, i = app(), self.ids
         self.animal_id = animal_id
+        self.is_new = animal_id is None
+        self.passport_after_save = False
         self.state = {"breed": "arashan", "sex": "female", "status": "active",
                       "birth_date": None, "father_id": None, "mother_id": None, "photo": ""}
         an = a.animals.get(animal_id)
@@ -282,6 +294,65 @@ class FormScreen(MDScreen):
             log.exception("file manager")
             app().toast("err_photo")
 
+    def add_passport(self):
+        """Capture/select a passport photo and create the PDF after saving a new animal."""
+        if self.animal_id is not None:
+            return
+        self.passport_after_save = True
+        if platform != "android":
+            self.pick_photo()
+            return
+
+        photo_dir = os.path.join(app().user_data_dir, "passport_photos")
+        photo_path = os.path.join(photo_dir, uuid.uuid4().hex + ".jpg")
+        try:
+            from plyer import camera
+
+            os.makedirs(photo_dir, exist_ok=True)
+            camera.take_picture(filename=photo_path, on_complete=self._passport_photo_complete)
+        except Exception:  # noqa: BLE001 — report camera errors without losing the form
+            log.exception("take new animal passport photo")
+            self.passport_after_save = False
+            self._remove_captured_photo(photo_path)
+            app().toast("err_camera")
+
+    def _passport_photo_complete(self, path):
+        try:
+            photo_ready = bool(path) and os.path.isfile(path) and os.path.getsize(path) > 0
+        except OSError:
+            photo_ready = False
+        if not photo_ready:
+            self.passport_after_save = False
+            self._remove_captured_photo(path)
+            Clock.schedule_once(lambda *_: app().toast("err_camera"), 0)
+            return False
+        Clock.schedule_once(lambda *_: self._store_passport_photo(path), 0)
+        return False
+
+    def _store_passport_photo(self, path):
+        try:
+            result = app().animals.store_photo(path)
+            if not result.ok:
+                self.passport_after_save = False
+                app().toast(result.message)
+                return
+            self._drop_new_photo()
+            self.state["photo"] = result.data
+            self.update_buttons()
+        finally:
+            self._remove_captured_photo(path)
+
+    @staticmethod
+    def _remove_captured_photo(path):
+        if not path:
+            return
+        try:
+            os.remove(path)
+        except FileNotFoundError:
+            pass
+        except OSError:
+            log.exception("remove temporary passport photo")
+
     def _close_fm(self, *_):
         self.fm.close()
 
@@ -326,11 +397,18 @@ class FormScreen(MDScreen):
 
     def save(self):
         a, i = app(), self.ids
+        if self.passport_after_save and not self.state.get("photo"):
+            a.toast("err_camera")
+            return
         data = dict(self.state, tag=i.tag.text, name=i.name.text, chip=i.chip.text, notes=i.notes.text)
         res = a.animals.save(a.farm, self.animal_id, data)
         a.toast(res.message)
         if res.ok:
             a.back()
+            if self.passport_after_save:
+                self.passport_after_save = False
+                a.open_animal(res.data.id)
+                a.detail._create_passport(photo_path=res.data.photo or None)
 
 
 class PhotoView(Image):
@@ -430,6 +508,11 @@ class DetailScreen(MDScreen):
         hero.bind(on_release=lambda *_: self.edit())
         box.add_widget(hero)
 
+        passport_button = MDRaisedButton(
+            text=T("passport_button"), size_hint_x=1,
+            on_release=lambda *_: self.export_passport())
+        box.add_widget(passport_button)
+
         # --- плитки: пол, возраст, потомство ---
         age = age_parts(an.birth_date)
         age_txt = f"{age[0]} {T('y_short')} {age[1]} {T('m_short')}" if age else "—"
@@ -509,6 +592,145 @@ class DetailScreen(MDScreen):
 
     def edit(self):
         app().open_form(self.animal_id)
+
+    def export_passport(self):
+        if platform == "android":
+            photo_dir = os.path.join(app().user_data_dir, "passport_photos")
+            photo_path = os.path.join(photo_dir, uuid.uuid4().hex + ".jpg")
+            try:
+                from plyer import camera
+
+                os.makedirs(photo_dir, exist_ok=True)
+                camera.take_picture(
+                    filename=photo_path,
+                    on_complete=self._passport_photo_complete,
+                )
+            except Exception:  # noqa: BLE001 — camera integration may fail on the device
+                log.exception("take passport photo")
+                try:
+                    os.remove(photo_path)
+                except FileNotFoundError:
+                    pass
+                app().toast("err_camera")
+            return
+
+        an = app().animals.get(self.animal_id)
+        self._create_passport(an.photo if an and an.photo else None)
+
+    def _passport_photo_complete(self, path):
+        try:
+            photo_ready = bool(path) and os.path.isfile(path) and os.path.getsize(path) > 0
+        except OSError:
+            photo_ready = False
+        if not photo_ready:
+            self._remove_captured_photo(path)
+            Clock.schedule_once(lambda *_: app().toast("err_camera"), 0)
+            return False
+        Clock.schedule_once(lambda *_: self._create_passport(path, captured=True), 0)
+        return False
+
+    def _create_passport(self, photo_path=None, captured=False):
+        a = app()
+        an = a.animals.get(self.animal_id)
+        if not an:
+            a.toast("err_not_found")
+            if captured:
+                self._remove_captured_photo(photo_path)
+            return
+
+        owner = a.farms.owner(a.farm)
+        father, mother = a.animals.parents(an)
+        age = age_parts(an.birth_date)
+        age_text = (f"{age[0]} {T('y_short')} {age[1]} {T('m_short')}" if age else T("not_set"))
+        owner_text = " · ".join(x for x in (owner.name if owner else "", owner.phone if owner else "") if x)
+
+        identity_fields = [
+            (T("farm"), a.farm.name if a.farm else T("not_set")),
+            (T("owner"), owner_text or T("not_set")),
+            (T("tag"), an.tag),
+            (T("name"), an.name or T("not_set")),
+            (T("chip"), an.chip or T("not_set")),
+            (T("breed"), T("breed_" + an.breed)),
+            (T("sex"), T(an.sex)),
+            (T("birth_date"), fmt(an.birth_date)),
+            (T("arrival_date"), fmt(an.arrival_date)),
+            (T("age"), age_text),
+            (T("status"), T("st_" + an.status)),
+        ]
+        origin_fields = [
+            (T("father"), label_of(father) if father else T("not_set")),
+            (T("mother"), label_of(mother) if mother else T("not_set")),
+        ]
+
+        health_records = []
+        for record in a.health.list_for(an):
+            lines = [f"{T('done_date')}: {fmt(record.done_date)}"]
+            if record.dose:
+                lines.append(f"{T('dose')}: {record.dose}")
+            if record.performer:
+                lines.append(f"{T('performer')}: {record.performer}")
+            if record.next_date:
+                lines.append(f"{T('next_date')}: {fmt(record.next_date)}")
+            health_records.append((f"{T('k_' + record.kind)} · {record.title}", lines))
+
+        repro_records = []
+        for event in a.repro.list_for(an):
+            lines = [f"{T('event_date')}: {fmt(event.event_date)}"]
+            if event.kind == "mating":
+                partner = a.animals.get(event.partner_id)
+                lines.append(f"{T('partner')}: {label_of(partner) if partner else T('not_set')}")
+            else:
+                lines.append(f"{T('males_count')}: {event.males}")
+                lines.append(f"{T('females_count')}: {event.females}")
+            repro_records.append((T("ev_" + event.kind), lines))
+
+        sections = {
+            "title": T("passport_title"),
+            "subtitle": f"{T('passport_generated')}: {fmt(date.today())}  ·  {T('tag')}: {an.tag}",
+            "identity": [(T("passport_identity"), identity_fields),
+                         (T("passport_origin"), origin_fields)],
+            "health_title": T("passport_health"),
+            "health": health_records,
+            "repro_title": T("passport_repro"),
+            "repro": repro_records,
+            "empty": T("no_records"),
+            "notes_title": T("notes"),
+            "notes": an.notes,
+        }
+
+        try:
+            if platform == "android":
+                output_dir = os.path.join(a.user_data_dir, "passports")
+            else:
+                output_dir = downloads_directory() or os.path.join(a.user_data_dir, "passports")
+            path = create_animal_passport(
+                an, sections, output_dir, photo_path=photo_path or an.photo or None)
+            if platform == "android":
+                try:
+                    is_public = publish_to_android_downloads(path)
+                except Exception:  # noqa: BLE001 — fallback to the app's private copy
+                    log.exception("publish animal passport")
+                    is_public = False
+            else:
+                is_public = output_dir == downloads_directory()
+            a.toast("passport_saved" if is_public else "passport_saved_private")
+        except Exception:  # noqa: BLE001 — PDF export should not interrupt animal records
+            log.exception("create animal passport")
+            a.toast("err_passport")
+        finally:
+            if captured:
+                self._remove_captured_photo(photo_path)
+
+    @staticmethod
+    def _remove_captured_photo(path):
+        if not path:
+            return
+        try:
+            os.remove(path)
+        except FileNotFoundError:
+            pass
+        except OSError:
+            log.exception("remove captured passport photo")
 
     def add_record(self):
         a = app()

@@ -1,6 +1,7 @@
 """Константы приложения ZooBase."""
 
 DB_FILENAME = "zoobase.db"
+FARM_NAME = "Абдыкадыров Абдылазиз"
 DATE_FMT = "%d.%m.%Y"
 
 BREEDS = ("arashan", "alatoo", "other")

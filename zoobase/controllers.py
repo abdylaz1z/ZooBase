@@ -63,6 +63,19 @@ class FarmController:
             log.exception("farm current")
             return None
 
+    def rename(self, farm: Farm, name: str) -> Result:
+        name = (name or "").strip()
+        if not name:
+            return Result(False, "err_name_required")
+        try:
+            if farm.name != name:
+                farm.name = name
+                farm.save()
+            return Result(True, "saved", farm)
+        except PeeweeException:
+            log.exception("farm rename")
+            return Result(False, "err_db")
+
     def create(self, name: str, region: str, owner: str, phone: str) -> Result:
         name, region, owner = (name or "").strip(), (region or "").strip(), (owner or "").strip()
         phone = re.sub(r"[\s\-()]", "", phone or "")
